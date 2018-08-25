@@ -4,7 +4,9 @@
   "description": "Engine for Time Server",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "db-reset": "scripts/setup-db.sh",
+    "db-up": "db-migrate up"
   },
   "repository": {
     "type": "git",
@@ -14,5 +16,14 @@
   "bugs": {
     "url": "https://github.com/Tornquist/Time-Core/issues"
   },
-  "homepage": "https://github.com/Tornquist/Time-Core#readme"
+  "homepage": "https://github.com/Tornquist/Time-Core#readme",
+  "devDependencies": {
+    "db-migrate": "^0.11.1",
+    "db-migrate-mysql": "^1.1.10",
+    "mysql": "^2.16.0"
+  },
+  "dependencies": {
+    "dotenv": "^6.0.0",
+    "knex": "^0.15.2"
+  }
 }
