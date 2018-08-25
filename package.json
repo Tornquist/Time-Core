@@ -1,0 +1,18 @@
+{
+  "name": "time-core",
+  "version": "0.0.0",
+  "description": "Engine for Time Server",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tornquist/Time-Core.git"
+  },
+  "author": "Nathan Tornquist",
+  "bugs": {
+    "url": "https://github.com/Tornquist/Time-Core/issues"
+  },
+  "homepage": "https://github.com/Tornquist/Time-Core#readme"
+}
