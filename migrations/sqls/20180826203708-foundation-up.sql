@@ -20,7 +20,7 @@ CREATE TABLE category (
 
 CREATE TRIGGER category_updated_at BEFORE UPDATE ON category FOR EACH ROW
 BEGIN
-    SET NEW.updated_at = NOW();
+  SET NEW.updated_at = NOW();
 END;
 
 /* Entry */
@@ -29,10 +29,12 @@ CREATE TABLE entry (
   created_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   updated_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   type_id BIGINT UNSIGNED NOT NULL,
+  category_id BIGINT UNSIGNED NOT NULL,
   started_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   ended_at timestamp NULL,
 
-  FOREIGN KEY (type_id) REFERENCES entry_type(id)
+  FOREIGN KEY (type_id) REFERENCES entry_type(id),
+  FOREIGN KEY (category_id) REFERENCES category(id)
 );
 
 CREATE TRIGGER entry_updated_at BEFORE UPDATE ON entry FOR EACH ROW
