@@ -6,7 +6,8 @@
   "scripts": {
     "test": "mocha test/test-*",
     "db-reset": "scripts/setup-db.sh",
-    "db-up": "db-migrate up"
+    "db-up": "db-migrate up",
+    "db-down": "db-migrate down"
   },
   "repository": {
     "type": "git",
