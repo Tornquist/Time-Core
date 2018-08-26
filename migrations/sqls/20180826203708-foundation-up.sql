@@ -10,10 +10,10 @@ INSERT INTO entry_type (name) VALUES ('event');
 /* Category */
 CREATE TABLE category (
   id serial primary key,
-  parent_id BIGINT UNSIGNED NULL,
-  name varchar(30) NOT NULL,
   created_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   updated_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
+  parent_id BIGINT UNSIGNED NULL,
+  name varchar(30) NOT NULL,
 
   FOREIGN KEY (parent_id) REFERENCES category(id)
 );

@@ -3,7 +3,8 @@ let chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 let should = chai.should();
 
-const Time = require(process.env.PWD)()
+const config = require('./setup/config')
+const Time = require(process.env.PWD)(config)
 
 describe('Type Module', () => {
   it('contains the expected types', done => {
