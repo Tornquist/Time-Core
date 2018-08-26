@@ -3,12 +3,12 @@ let chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 let should = chai.should();
 
-const Type = require('../modules/Type')
+const Time = require(process.env.PWD)()
 
 describe('Type Module', () => {
   it('contains the expected types', done => {
     let expectedTypes = ['Entry']
-    let foundTypes = Object.keys(Type)
+    let foundTypes = Object.keys(Time.Type)
 
     expectedTypes.length.should.eq(foundTypes.length)
     expectedTypes.forEach(expectedType => {
@@ -19,9 +19,9 @@ describe('Type Module', () => {
 
   describe('Entry Types', () => {
     it('contains the expected types', done => {
-      Type.Entry.RANGE.should.eq('range')
-      Type.Entry.EVENT.should.eq('event')
-      Object.keys(Type.Entry).length.should.eq(2)
+      Time.Type.Entry.RANGE.should.eq('range')
+      Time.Type.Entry.EVENT.should.eq('event')
+      Object.keys(Time.Type.Entry).length.should.eq(2)
       done()
     })
   })
