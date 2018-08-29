@@ -4,10 +4,11 @@
   "description": "Engine for Time Server",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/test-*",
+    "test": "mocha test/test-* --exit",
     "db-reset": "scripts/setup-db.sh",
     "db-up": "db-migrate up",
-    "db-down": "db-migrate down"
+    "db-down": "db-migrate down",
+    "db-migrate": "db-migrate"
   },
   "repository": {
     "type": "git",

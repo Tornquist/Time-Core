@@ -1,30 +1,38 @@
 'use strict'
 
+let TimeError = require("./TimeError")
+
 module.exports = class Category {
-  constructor(id = null)  {
-    this.stale = id != null
+
+  get name() { return this.props.name }
+
+  constructor(data = {})  {
+    this.id = data.id
     this.props = {
-      id: id || null,
-      parent_id: null,
-      name: null
+      parent_id: data.parent_id,
+      name: data.name
     }
   }
 
-  get id() { return this.props.id }
-  get name() { return this.props.name }
+  static async fetch(id) {
+    let objectData = {}
+    try {
+      let data = await require('../lib/db')().select(
+        'parent_id',
+        'name'
+      ).from('category')
+      .where('id', id)
+      .limit(1)
 
-  async load(refresh = false) {
-    let shouldLoad = refresh || this.stale
-    let data = await require('../lib/db')().select(
-      'parent_id',
-      'name'
-    ).from('category')
-    .where('id', this.id)
-    .limit(1)
-    if (data.length == 0) {
-      return Promise.reject(new Error('Not found'))
+      if (data.length == 0) {
+        return Promise.reject(TimeError.Data.NOT_FOUND)
+      }
+
+      let objectData = data[0]
+    } catch (error) {
+      return Promise.reject(TimeError.Data.BAD_CONNECTION)
     }
 
-    return Promise.resolve()
+    return new Category(objectData)
   }
 }

@@ -10,36 +10,19 @@ describe('Category Module', () => {
   describe('Creating a new category', () => {
     let category = new Time.Category()
 
-    it('will default its properties to null', done => {
-      should.equal(category.id, null);
-      should.equal(category.name, null);
-      done()
-    })
-
-    it('does not have other properties', done => {
-      should.equal(category.notRealProp, undefined);
+    it('will start with no values', done => {
+      should.equal(category.id, undefined);
+      should.equal(category.name, undefined);
       done()
     })
   })
 
   describe('Loading an existing category', () => {
     describe('That does not exist', () => {
-      it('will throw by default', done => {
-        let category = new Time.Category(1000)
-        category.load()
-        .then(success => {
-          done(new Error('Expected error to be thrown'))
-        })
-        .catch(err => {
-          if (err.message == "Not found") {
-            done()
-          } else {
-            done(err)
-          }
-        })
+      it('will throw', () => {
+        return Time.Category.fetch(1000)
+        .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
       })
-
-      it('will not throw if load data is turned off')
     })
   })
 })
