@@ -57,6 +57,23 @@ module.exports = class Category {
     this.props.name = newName
   }
 
+  async getParent() {
+    let hasParent = this.props.parent_id !== null
+    if (!hasParent) return null
+
+    let fetchedParent = await Category.fetch(this.props.parent_id)
+    return fetchedParent
+  }
+  set parent(newParent) {
+    let isCategory = newParent instanceof Category && newParent.id !== undefined
+    let isNull = newParent === null
+    let isValidNewParent = isCategory || isNull
+    if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
+
+    this.props.parent_id = newParent != null ? newParent.id : null
+    this._modifiedProps.push('parent_id')
+  }
+
   constructor(data = {})  {
     this._modifiedProps = []
 
