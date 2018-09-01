@@ -102,7 +102,7 @@ module.exports = class Category {
   }
 
   static async fetch(id) {
-    let objectData = await fetchRecords({ id })
+    let objectData = await fetchRecords({ id }, 1)
     if (objectData.length == 0) {
       return Promise.reject(TimeError.Data.NOT_FOUND)
     }
