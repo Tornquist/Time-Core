@@ -124,6 +124,12 @@ describe('Category Module', () => {
       fetchedParent.id.should.eq(parent.id)
     })
 
+    it("allows retrieval of attached children", async () => {
+      let fetchedChildren = await parent.getChildren()
+      fetchedChildren.length.should.eq(1)
+      fetchedChildren[0].id.should.eq(child.id)
+    })
+
     it("allows removing parent", async () => {
       child.parent = null
       await child.save()

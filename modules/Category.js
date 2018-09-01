@@ -28,25 +28,26 @@ function updateRecord() {
   })
 }
 
-async function fetchRecord(id) {
+async function fetchRecords(filters, limit = null) {
   let data;
   try {
-    data = await require('../lib/db')().select(
+    let query = require('../lib/db')().select(
       'id', // To avoid adding to data later
       'parent_id',
       'name'
     ).from('category')
-    .where('id', id)
-    .limit(1)
+    .where(filters)
+
+    if (limit !== null) {
+      query = query.limit(+limit)
+    }
+
+    data = await query
   } catch (error) {
     return Promise.reject(TimeError.Data.BAD_CONNECTION)
   }
 
-  if (data.length == 0) {
-    return Promise.reject(TimeError.Data.NOT_FOUND)
-  }
-
-  return data[0]
+  return data
 }
 
 module.exports = class Category {
@@ -74,6 +75,11 @@ module.exports = class Category {
     this._modifiedProps.push('parent_id')
   }
 
+  async getChildren() {
+    let children = await fetchRecords({ parent_id: this.id })
+    return children.map(child => new Category(child))
+  }
+
   constructor(data = {})  {
     this._modifiedProps = []
 
@@ -96,7 +102,10 @@ module.exports = class Category {
   }
 
   static async fetch(id) {
-    let objectData = await fetchRecord(id)
-    return new Category(objectData)
+    let objectData = await fetchRecords({ id })
+    if (objectData.length == 0) {
+      return Promise.reject(TimeError.Data.NOT_FOUND)
+    }
+    return new Category(objectData[0])
   }
 }
