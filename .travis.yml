@@ -14,3 +14,5 @@ cache:
 before_script:
   - npm run db-reset
   - npm run db-up
+after_success:
+  - npm run coverage
