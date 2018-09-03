@@ -6,8 +6,11 @@ module.exports = (config) => {
 
   return {
     _db: require('./lib/db')(config.db),
-    Category: require('./modules/Category'),
+
     Error: require('./modules/TimeError'),
-    Type: require('./modules/Type')
+    Type: require('./modules/Type'),
+
+    Category: require('./modules/Category'),
+    Entry: require('./modules/Entry')
   }
 }
