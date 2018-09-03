@@ -60,6 +60,26 @@ describe('Entry Module', () => {
     })
   })
 
+  describe('Loading an entry', () => {
+    let entry;
+    before(async () => {
+      entry = new Time.Entry()
+      entry.category = category
+      entry.type = Time.Type.Entry.EVENT
+      await entry.save()
+    })
+
+    it('will return the entry if it exists', async () => {
+      let fetchedEvent = await Time.Entry.fetch(entry.id)
+      should.not.equal(fetchedEvent, null)
+    })
+
+    it('will throw if the entry does not exist', () => {
+      return Time.Entry.fetch(-1)
+      .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+  })
+
   describe('Updating an entry', () => {
     let entry;
     before(async () => {
