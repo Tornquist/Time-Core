@@ -251,4 +251,59 @@ describe('Entry Module', () => {
       })
     })
   })
+
+  describe('Helper methods (for category)', () => {
+    describe('Logging events', () => {
+      let entry;
+      it('will success and return an Entry', async () => {
+        entry = await Time.Entry.logFor(category)
+        entry.constructor.name.should.eq('Entry')
+      })
+
+      it('will have the expected properties', () => {
+        entry.type.should.eq(Time.Type.Entry.EVENT)
+        entry.startedAt.should.be.a('date')
+        should.equal(entry.endedAt, null)
+      })
+    })
+
+    describe('Starting and stopping events', () => {
+      let entry;
+      it('will allow an entry to be started', async () => {
+        entry = await Time.Entry.startFor(category)
+        entry.constructor.name.should.eq('Entry')
+        entry.type.should.eq(Time.Type.Entry.RANGE)
+      })
+
+      it('will reject starting when an open entry exists', async () => {
+        try {
+          await Time.Entry.startFor(category)
+        }
+        catch (e) {
+          e.should.eq(Time.Error.Request.INVALID_ACTION)
+          return
+        }
+        throw new Error("Expected rejection")
+      })
+
+      it('will allow an entry to be stopped', async () => {
+        let stoppedEntry = await Time.Entry.stopFor(category)
+        stoppedEntry.constructor.name.should.eq('Entry')
+        stoppedEntry.type.should.eq(Time.Type.Entry.RANGE)
+
+        entry.id.should.eq(stoppedEntry.id)
+      })
+
+      it('will reject stopping when no open entries exist', async () => {
+        try {
+          await Time.Entry.stopFor(category)
+        }
+        catch (e) {
+          e.should.eq(Time.Error.Request.INVALID_ACTION)
+          return
+        }
+        throw new Error("Expected rejection")
+      })
+    })
+  })
 })

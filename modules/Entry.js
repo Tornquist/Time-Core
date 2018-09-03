@@ -18,8 +18,8 @@ function insertRecord() {
   let data = {
     type_id: db.raw('(select id from entry_type where name = ?)', this.props.type),
     category_id: this.props.category_id,
-    started_at: helpers.dbDate(this.props.started_at),
-    ended_at: helpers.dbDate(this.props.ended_at)
+    started_at: helpers.toDbDate(this.props.started_at),
+    ended_at: helpers.toDbDate(this.props.ended_at)
   }
   return db('entry').insert(data)
   .then(results => {
@@ -39,12 +39,12 @@ function updateRecord() {
   }
 
   if (this._modifiedProps.includes('started_at')) {
-    data.started_at = helpers.dbDate(this.props.started_at)
+    data.started_at = helpers.toDbDate(this.props.started_at)
     this._modifiedProps = helpers.removeAll(this._modifiedProps, 'started_at')
   }
 
   if (this._modifiedProps.includes('ended_at')) {
-    data.ended_at = helpers.dbDate(this.props.ended_at)
+    data.ended_at = helpers.toDbDate(this.props.ended_at)
     this._modifiedProps = helpers.removeAll(this._modifiedProps, 'ended_at')
   }
 
@@ -101,6 +101,9 @@ module.exports = class Entry {
     this.props.category_id = category_id
   }
 
+  get type() {
+    return this.props.type
+  }
   set type(newType) {
     // Clear end date when changing from range to entry
     if (this.type === Type.Entry.RANGE && newType !== Type.Entry.RANGE) {
@@ -110,10 +113,10 @@ module.exports = class Entry {
     this._modifiedProps.push("type")
     this.props.type = newType
   }
-  get type() {
-    return this.props.type
-  }
 
+  get startedAt() {
+    return helpers.fromDbDate(this.props.started_at)
+  }
   set startedAt(newStart) {
     if (this.type === undefined) throw TimeError.Request.INVALID_STATE
 
@@ -121,6 +124,9 @@ module.exports = class Entry {
     this._modifiedProps.push("started_at")
   }
 
+  get endedAt() {
+    return helpers.fromDbDate(this.props.ended_at)
+  }
   set endedAt(newEnd) {
     if (
       this.type === undefined ||
@@ -184,5 +190,48 @@ module.exports = class Entry {
 
     let records = await fetchRecords(search)
     return records.map(record => new Entry(record))
+  }
+
+  static async startFor(category) {
+    let matches = await Entry.findFor({
+      category: category,
+      type: Type.Entry.RANGE,
+      ended_at: null
+    })
+
+    if (matches.length !== 0) throw TimeError.Request.INVALID_ACTION
+
+    let entry = new Entry()
+    entry.type = Type.Entry.RANGE
+    entry.category = category
+    entry.start()
+    await entry.save()
+
+    return entry
+  }
+
+  static async stopFor(category) {
+    let matches = await Entry.findFor({
+      category: category,
+      type: Type.Entry.RANGE,
+      ended_at: null
+    })
+
+    if (matches.length !== 1) throw TimeError.Request.INVALID_ACTION
+
+    let entry = matches[0]
+    entry.stop()
+    await entry.save()
+
+    return entry
+  }
+
+  static async logFor(category) {
+    let entry = new Entry()
+    entry.type = Type.Entry.EVENT
+    entry.category = category
+    await entry.save()
+
+    return entry
   }
 }
