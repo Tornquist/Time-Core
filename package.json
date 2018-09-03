@@ -4,7 +4,12 @@
   "description": "Engine for Time Server",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "nyc --reporter=html --reporter=text mocha test/test-* --exit",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "db-reset": "scripts/setup-db.sh",
+    "db-up": "db-migrate up",
+    "db-down": "db-migrate down",
+    "db-migrate": "db-migrate"
   },
   "repository": {
     "type": "git",
@@ -14,5 +19,20 @@
   "bugs": {
     "url": "https://github.com/Tornquist/Time-Core/issues"
   },
-  "homepage": "https://github.com/Tornquist/Time-Core#readme"
+  "homepage": "https://github.com/Tornquist/Time-Core#readme",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "coveralls": "^3.0.2",
+    "db-migrate": "^0.11.1",
+    "db-migrate-mysql": "^1.1.10",
+    "mocha": "^5.2.0",
+    "mysql": "^2.16.0",
+    "nyc": "^13.0.1"
+  },
+  "dependencies": {
+    "dotenv": "^6.0.0",
+    "knex": "^0.15.2",
+    "moment": "^2.22.2"
+  }
 }

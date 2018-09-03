@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+  - "8.4.0"
+services:
+  - mysql
+env:
+  global:
+    - DB_USER=root
+    - DB_PASS=
+    - DB_NAME=timetest
+cache:
+  directories:
+    - "node_modules"
+before_script:
+  - npm run db-reset
+  - npm run db-up
+after_success:
+  - npm run coverage
