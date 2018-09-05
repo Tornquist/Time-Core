@@ -3,7 +3,8 @@
 const TimeError = require("./TimeError")
 const Type = require("./Type")
 
-const helpers = require('../lib/helpers')
+const dateHelper = require('../helpers/date')
+const arrayHelper = require('../helpers/array')
 
 function insertRecord() {
   let db = require('../lib/db')()
@@ -18,8 +19,8 @@ function insertRecord() {
   let data = {
     type_id: db.raw('(select id from entry_type where name = ?)', this.props.type),
     category_id: this.props.category_id,
-    started_at: helpers.toDbDate(this.props.started_at),
-    ended_at: helpers.toDbDate(this.props.ended_at)
+    started_at: dateHelper.toDb(this.props.started_at),
+    ended_at: dateHelper.toDb(this.props.ended_at)
   }
   return db('entry').insert(data)
   .then(results => {
@@ -35,17 +36,17 @@ function updateRecord() {
 
   if (this._modifiedProps.includes('type')) {
     data.type_id = db.raw('(select id from entry_type where name = ?)', this.props.type)
-    this._modifiedProps = helpers.removeAll(this._modifiedProps, 'type')
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'type')
   }
 
   if (this._modifiedProps.includes('started_at')) {
-    data.started_at = helpers.toDbDate(this.props.started_at)
-    this._modifiedProps = helpers.removeAll(this._modifiedProps, 'started_at')
+    data.started_at = dateHelper.toDb(this.props.started_at)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'started_at')
   }
 
   if (this._modifiedProps.includes('ended_at')) {
-    data.ended_at = helpers.toDbDate(this.props.ended_at)
-    this._modifiedProps = helpers.removeAll(this._modifiedProps, 'ended_at')
+    data.ended_at = dateHelper.toDb(this.props.ended_at)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'ended_at')
   }
 
   this._modifiedProps.forEach(prop => {
@@ -115,7 +116,7 @@ module.exports = class Entry {
   }
 
   get startedAt() {
-    return helpers.fromDbDate(this.props.started_at)
+    return dateHelper.fromDb(this.props.started_at)
   }
   set startedAt(newStart) {
     if (this.type === undefined) throw TimeError.Request.INVALID_STATE
@@ -125,7 +126,7 @@ module.exports = class Entry {
   }
 
   get endedAt() {
-    return helpers.fromDbDate(this.props.ended_at)
+    return dateHelper.fromDb(this.props.ended_at)
   }
   set endedAt(newEnd) {
     if (
@@ -141,7 +142,7 @@ module.exports = class Entry {
     this._modifiedProps.push("ended_at")
   }
 
-  constructor(data = {})  {
+  constructor(data = {}) {
     this._modifiedProps = []
 
     this.id = data.id

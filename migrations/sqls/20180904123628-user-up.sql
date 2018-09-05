@@ -5,7 +5,6 @@ CREATE TABLE user (
 
   email varchar(255) NOT NULL,
   password_hash varchar(255) NOT NULL,
-  password_salt varchar(32) NOT NULL,
 
   UNIQUE (email)
 );

@@ -11,6 +11,7 @@ module.exports = (config) => {
     Type: require('./modules/Type'),
 
     Category: require('./modules/Category'),
-    Entry: require('./modules/Entry')
+    Entry: require('./modules/Entry'),
+    User: require('./modules/User')
   }
 }
