@@ -108,4 +108,30 @@ describe('User Module', () => {
       await db('user').where('id', user.id).del()
     })
   })
+
+  describe('Verifying Users', () => {
+    let user;
+
+    before(async () => {
+      user = new Time.User()
+      user.email = "test@test.com"
+      await user.setPassword("newPassword")
+      await user.save()
+    })
+
+    it('Resolves with a valid password', () => {
+      return user.verify("newPassword")
+    })
+
+    it('Rejects with an invalid password', () => {
+      return user.verify("wrongPassword")
+      .should.be.rejectedWith(Time.Error.Authentication.INVALID_PASSWORD)
+    })
+
+    after(async () => {
+      if (user.id === undefined) return
+      let db = require('../lib/db')()
+      await db('user').where('id', user.id).del()
+    })
+  })
 })

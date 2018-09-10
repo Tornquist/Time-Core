@@ -96,6 +96,13 @@ module.exports = class User {
       updateRecord.bind(this)()
   }
 
+  async verify(password) {
+    const bcrypt = require('bcrypt')
+    let res = await bcrypt.compare(password, this.props.password_hash)
+    if (res) return
+    throw TimeError.Authentication.INVALID_PASSWORD
+  }
+
   static async fetch(id) {
     let objectData = await fetchRecords({ id }, 1)
     if (objectData.length == 0) {

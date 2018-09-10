@@ -8,6 +8,9 @@ const INVALID_TYPE = new Error("Action not permitted for type")
 const INVALID_STATE = new Error("Action is not currently allowed")
 const INVALID_ACTION = new Error("Action is unavailable")
 
+// Authentication Errors
+const INVALID_PASSWORD = new Error("Password did not match")
+
 module.exports = {
   Data: {
     NOT_FOUND,
@@ -18,5 +21,8 @@ module.exports = {
     INVALID_TYPE,
     INVALID_STATE,
     INVALID_ACTION
+  },
+  Authentication: {
+    INVALID_PASSWORD
   }
 }
