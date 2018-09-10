@@ -65,4 +65,47 @@ describe('User Module', () => {
       await db('user').where('id', newUser.id).del()
     })
   })
+
+  describe('Fetching Users', () => {
+    let user;
+
+    before(async () => {
+      user = new Time.User()
+      user.email = "test@test.com"
+      await user.setPassword("newPassword")
+      await user.save()
+    })
+
+    describe('Via id', () => {
+      it('Returns the expected data for a real id', async () => {
+        user.id.should.be.a('number')
+        let fetchedUser = await Time.User.fetch(user.id)
+        fetchedUser.constructor.name.should.eq('User')
+      })
+
+      it('Rejects for an invalid id', () => {
+        return Time.User.fetch(-1).should.be
+        .rejectedWith(Time.Error.Data.NOT_FOUND)
+      })
+    })
+
+    describe('Via email', () => {
+      it('Returns the expected data for a real email', async () => {
+        user.email.should.be.a('string')
+        let fetchedUser = await Time.User.findWithEmail(user.email)
+        fetchedUser.constructor.name.should.eq('User')
+      })
+
+      it('Rejects for an invalid id', () => {
+        return Time.User.findWithEmail("nathan@notreal.com").should.be
+        .rejectedWith(Time.Error.Data.NOT_FOUND)
+      })
+    })
+
+    after(async () => {
+      if (user.id === undefined) return
+      let db = require('../lib/db')()
+      await db('user').where('id', user.id).del()
+    })
+  })
 })

@@ -30,7 +30,30 @@ function updateRecord() {
   })
 }
 
+async function fetchRecords(filters, limit = null) {
+  let data;
+  try {
+    let query = require('../lib/db')().select(
+      'id', // To avoid adding to data later
+      'email',
+      'password_hash'
+    ).from('user')
+    .where(filters)
+
+    if (limit !== null) {
+      query = query.limit(+limit)
+    }
+
+    data = await query
+  } catch (error) {
+    return Promise.reject(TimeError.Data.BAD_CONNECTION)
+  }
+
+  return data
+}
+
 module.exports = class User {
+  get email() { return this.props.email }
   set email(newEmail) {
     if (!regexHelper.validEmail(newEmail)) {
       throw TimeError.Data.INCORRECT_FORMAT
@@ -44,7 +67,7 @@ module.exports = class User {
     if (!regexHelper.validPassword(newPassword)) {
       throw TimeError.Data.INCORRECT_FORMAT
     }
-    
+
     const bcrypt = require('bcrypt')
     const saltRounds = 12
     let hash = await bcrypt.hash(newPassword, saltRounds)
@@ -71,5 +94,21 @@ module.exports = class User {
     return neverSaved ?
       insertRecord.bind(this)() :
       updateRecord.bind(this)()
+  }
+
+  static async fetch(id) {
+    let objectData = await fetchRecords({ id }, 1)
+    if (objectData.length == 0) {
+      return Promise.reject(TimeError.Data.NOT_FOUND)
+    }
+    return new User(objectData[0])
+  }
+
+  static async findWithEmail(email) {
+    let objectData = await fetchRecords({ email }, 1)
+    if (objectData.length == 0) {
+      return Promise.reject(TimeError.Data.NOT_FOUND)
+    }
+    return new User(objectData[0])
   }
 }
