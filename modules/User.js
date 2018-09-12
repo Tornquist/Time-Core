@@ -3,6 +3,7 @@
 const TimeError = require("./TimeError")
 
 const regexHelper = require('../helpers/regex')
+const cryptoHelper = require('../helpers/crypto')
 
 function insertRecord() {
   let db = require('../lib/db')()
@@ -68,10 +69,7 @@ module.exports = class User {
       throw TimeError.Data.INCORRECT_FORMAT
     }
 
-    const bcrypt = require('bcrypt')
-    const saltRounds = 12
-    let hash = await bcrypt.hash(newPassword, saltRounds)
-    this.props.password_hash = hash
+    this.props.password_hash = await cryptoHelper.hash(newPassword)
     this._modifiedProps.push('password_hash')
   }
 
@@ -97,8 +95,7 @@ module.exports = class User {
   }
 
   async verify(password) {
-    const bcrypt = require('bcrypt')
-    let res = await bcrypt.compare(password, this.props.password_hash)
+    let res = await cryptoHelper.verify(password, this.props.password_hash)
     if (res) return
     throw TimeError.Authentication.INVALID_PASSWORD
   }

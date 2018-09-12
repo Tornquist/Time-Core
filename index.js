@@ -12,6 +12,7 @@ module.exports = (config) => {
 
     Category: require('./modules/Category'),
     Entry: require('./modules/Entry'),
+    Token: require('./modules/Token'),
     User: require('./modules/User')
   }
 }
