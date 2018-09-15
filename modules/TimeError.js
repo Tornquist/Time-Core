@@ -10,6 +10,9 @@ const INVALID_ACTION = new Error("Action is unavailable")
 
 // Authentication Errors
 const INVALID_PASSWORD = new Error("Password did not match")
+const UNIQUE_TOKEN_NOT_FOUND = new Error("Unable to find unique token")
+const TOKEN_EXPIRED = new Error("Token has expired")
+const TOKEN_INVALID = new Error("Token has does not match")
 
 module.exports = {
   Data: {
@@ -23,6 +26,9 @@ module.exports = {
     INVALID_ACTION
   },
   Authentication: {
-    INVALID_PASSWORD
+    INVALID_PASSWORD,
+    UNIQUE_TOKEN_NOT_FOUND,
+    TOKEN_EXPIRED,
+    TOKEN_INVALID
   }
 }

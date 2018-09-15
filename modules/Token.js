@@ -1,3 +1,6 @@
+const TimeError = require("./TimeError")
+const Type = require('./Type')
+
 const tokenHelper = require('../helpers/token')
 const cryptoHelper = require('../helpers/crypto')
 const moment = require('moment')
@@ -9,6 +12,40 @@ function insertRecord() {
     this.id = results[0]
     return this
   })
+}
+
+async function fetchRecords(filters, limit = null) {
+  let data;
+  try {
+    let query = require('../lib/db')().select(
+      'id', // To avoid adding to data later
+      'user_id',
+      'access_token',
+      'access_token_hash',
+      'access_expires_at',
+      'refresh_token',
+      'refresh_token_hash',
+      'refresh_expires_at',
+      'active'
+    ).from('token')
+    .where(filters)
+
+    if (limit !== null) {
+      query = query.limit(+limit)
+    }
+
+    data = await query
+  } catch (error) {
+    return Promise.reject(TimeError.Data.BAD_CONNECTION)
+  }
+
+  let formattedData = data.map(entry => {
+    let clone = Object.assign({}, entry)
+    clone.active = clone.active === 1
+    return clone
+  })
+
+  return formattedData
 }
 
 module.exports = class Token {
@@ -73,5 +110,39 @@ module.exports = class Token {
       token: newTokens.access.token,
       refresh: newTokens.refresh.token
     }
+  }
+
+  static async verify(token, type=Type.Token.ACCESS) {
+    let lookupKey = cryptoHelper.shortHash(token)
+
+    let validType = Object.values(Type.Token).includes(type)
+    if (!validType) throw TimeError.Request.INVALID_TYPE
+    let lookupColumn = type + '_token'
+
+    let filters = {}
+    filters[lookupColumn] = lookupKey
+    let records = await fetchRecords(filters)
+
+    if (records.length != 1) {
+      throw TimeError.Authentication.UNIQUE_TOKEN_NOT_FOUND
+    }
+
+    let tokenData = records[0]
+    let inactive = !tokenData.active
+    let expirationColumn = type + '_expires_at'
+    let expired = Date.now() > moment(tokenData[expirationColumn]).valueOf()
+
+    if (inactive || expired) {
+      throw TimeError.Authentication.TOKEN_EXPIRED
+    }
+
+    let tokenColumn = type + '_token_hash'
+    let valid = await cryptoHelper.verify(token, tokenData[tokenColumn])
+
+    if (!valid) {
+      throw TimeError.Authentication.TOKEN_INVALID
+    }
+
+    return new Token(tokenData)
   }
 }

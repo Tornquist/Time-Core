@@ -8,7 +8,7 @@ const Time = require(process.env.PWD)(config)
 
 describe('Type Module', () => {
   it('contains the expected types', done => {
-    let expectedTypes = ['Entry']
+    let expectedTypes = ['Entry', 'Token']
     let foundTypes = Object.keys(Time.Type)
 
     expectedTypes.length.should.eq(foundTypes.length)
