@@ -112,7 +112,7 @@ module.exports = class Token {
     }
   }
 
-  static async verify(token, type=Type.Token.ACCESS) {
+  static async fetch(token, type=Type.Token.ACCESS) {
     let lookupKey = cryptoHelper.shortHash(token)
 
     let validType = Object.values(Type.Token).includes(type)
@@ -127,22 +127,27 @@ module.exports = class Token {
       throw TimeError.Authentication.UNIQUE_TOKEN_NOT_FOUND
     }
 
-    let tokenData = records[0]
-    let inactive = !tokenData.active
-    let expirationColumn = type + '_expires_at'
-    let expired = Date.now() > moment(tokenData[expirationColumn]).valueOf()
+    return new Token(records[0])
+  }
 
+  static async verify(token, type=Type.Token.ACCESS) {
+    let tokenObject = await Token.fetch(token, type)
+
+    let inactive = !tokenObject.props.active
+    let expirationColumn = type + '_expires_at'
+    let expirationDate = moment(tokenObject.props[expirationColumn])
+    let expired = moment().isAfter(expirationDate)
     if (inactive || expired) {
       throw TimeError.Authentication.TOKEN_EXPIRED
     }
 
     let tokenColumn = type + '_token_hash'
-    let valid = await cryptoHelper.verify(token, tokenData[tokenColumn])
+    let valid = await cryptoHelper.verify(token, tokenObject.props[tokenColumn])
 
     if (!valid) {
       throw TimeError.Authentication.TOKEN_INVALID
     }
 
-    return new Token(tokenData)
+    return tokenObject
   }
 }

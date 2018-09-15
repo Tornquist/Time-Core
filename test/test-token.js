@@ -28,6 +28,33 @@ describe('Token Module', () => {
     })
   })
 
+  describe('Fetching a token', () => {
+    it('fetches as an access token by default', async () => {
+      let result = await Time.Token.fetch(token.token)
+      result.constructor.name.should.eq('Token')
+    })
+
+    it('can explicitly fetch as access', async () => {
+      let result = await Time.Token.fetch(token.token, Time.Type.Token.ACCESS)
+      result.constructor.name.should.eq('Token')
+    })
+
+    it('can explicitly fetch as access', async () => {
+      let result = await Time.Token.fetch(token.refresh, Time.Type.Token.REFRESH)
+      result.constructor.name.should.eq('Token')
+    })
+
+    it('Rejects invalid token types', () => {
+      return Time.Token.fetch(token.token, "MADE UP")
+      .should.be.rejectedWith(Time.Error.Request.INVALID_TYPE)
+    })
+
+    it('Rejects when a matching token is not found', () => {
+      return Time.Token.fetch("MADE UP")
+      .should.be.rejectedWith(Time.Error.Authentication.UNIQUE_TOKEN_NOT_FOUND)
+    })
+  })
+
   describe('Validating a token', () => {
     describe('With a valid token', () => {
       it('Verifies as an access token by default', async () => {
