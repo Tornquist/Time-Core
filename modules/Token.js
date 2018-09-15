@@ -14,6 +14,19 @@ function insertRecord() {
   })
 }
 
+function updateRecord() {
+  let db = require('../lib/db')()
+  let data = {}
+  this._modifiedProps.forEach(prop => {
+    data[prop] = this.props[prop]
+  })
+  return db('token').update(data).where('id', this.id)
+  .then(updated => {
+    this._modifiedProps = []
+    return this
+  })
+}
+
 async function fetchRecords(filters, limit = null) {
   let data;
   try {
@@ -49,6 +62,12 @@ async function fetchRecords(filters, limit = null) {
 }
 
 module.exports = class Token {
+  get active() { return this.props.active }
+  set active(newActive) {
+    this.props.active = newActive
+    this._modifiedProps.push('active')
+  }
+
   constructor(data = {}) {
     this._modifiedProps = []
 
@@ -73,7 +92,14 @@ module.exports = class Token {
 
     return neverSaved ?
       insertRecord.bind(this)() :
-      Promise.reject(new Error('Not yet available')) // updateRecord.bind(this)()
+      updateRecord.bind(this)()
+  }
+
+  async refresh() {
+    let newToken = Token.createForUser(this.props.user_id)
+    this.active = false
+    await this.save()
+    return newToken
   }
 
   static async createForUser(id) {

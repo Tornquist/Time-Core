@@ -164,6 +164,34 @@ describe('Token Module', () => {
     })
   })
 
+  describe('Refreshing a token', () => {
+    let liveToken;
+    let newToken;
+    before(async () => {
+      liveToken = await Time.Token.fetch(token.token)
+    })
+
+    it('returns a new token', async () => {
+      newToken = await liveToken.refresh()
+
+      // Same properties as Token.createForUser(:id)
+      newToken.user_id.should.eq(user.id)
+      newToken.creation.should.be.a('number')
+      newToken.expiration.should.be.a('number')
+      newToken.token.should.be.a('string')
+      newToken.refresh.should.be.a('string')
+    })
+
+    it('deactivates the old token', () => {
+      return Time.Token.verify(token.token)
+      .should.be.rejectedWith(Time.Error.Authentication.TOKEN_EXPIRED)
+    })
+
+    it('allows the new token to be verified', () => {
+      return Time.Token.verify(newToken.token)
+    })
+  })
+
   after(async () => {
     if (user.id === undefined) return
     let db = require('../lib/db')()
