@@ -40,25 +40,79 @@ describe('Account Module', () => {
       account.props.userIDs.includes(user1.id).should.eq(true)
     })
 
-    it('allows saving after a user has been registered')
+    it('allows saving after a user has been registered', async () => {
+      await account.save()
+
+      account.id.should.be.a('number')
+    })
   })
 
   describe('Updating an account', () => {
-    it('allows unregistering a user')
+    it('allows unregistering a user', () => {
+      account.unregister(user1)
 
-    it('can safely unregister a user a second time')
+      account._addedUsers.length.should.eq(0)
+      account._removedUsers.length.should.eq(1)
+      account._removedUsers.includes(user1.id)
+      account.props.userIDs.length.should.eq(0)
+    })
 
-    it('rejects saving when no users are registered')
+    it('can safely unregister a user a second time', () => {
+      account.unregister(user1)
 
-    it('allows registering a user')
+      account._addedUsers.length.should.eq(0)
+      account._removedUsers.length.should.eq(1)
+      account._removedUsers.includes(user1.id)
+      account.props.userIDs.length.should.eq(0)
+    })
 
-    it('has no action when registering a user again ')
+    it('rejects saving when no users are registered', () => {
+      return account.save()
+      .should.be.rejectedWith(Time.Error.Request.INVALID_STATE)
+    })
 
-    it('allows saving with one user')
+    it('allows registering a user', () => {
+      account.register(user2)
 
-    it('allows registering additional users')
+      account._addedUsers.includes(user2.id)
+      account._addedUsers.length.should.eq(1)
+      account._removedUsers.length.should.eq(1)
+      account.props.userIDs.length.should.eq(1)
+    })
 
-    it('allows saving with multiple users')
+    it('has no action when registering a user again ', () => {
+      account.register(user2)
+
+      account._addedUsers.includes(user2.id)
+      account._addedUsers.length.should.eq(1)
+      account._removedUsers.length.should.eq(1)
+      account.props.userIDs.length.should.eq(1)
+    })
+
+    it('allows saving with one user', async () => {
+      await account.save()
+
+      account._addedUsers.length.should.eq(0)
+      account._removedUsers.length.should.eq(0)
+      account.props.userIDs.length.should.eq(1)
+    })
+
+    it('allows registering additional users', () => {
+      account.register(user1)
+
+      account._addedUsers.includes(user1.id)
+      account._addedUsers.length.should.eq(1)
+      account._removedUsers.length.should.eq(0)
+      account.props.userIDs.length.should.eq(2)
+    })
+
+    it('allows saving with multiple users', async () => {
+      await account.save()
+
+      account._addedUsers.length.should.eq(0)
+      account._removedUsers.length.should.eq(0)
+      account.props.userIDs.length.should.eq(2)
+    })
   })
 
   describe('Fetching accounts', () => {
@@ -70,6 +124,7 @@ describe('Account Module', () => {
   })
 
   after(async () => {
+    await Time._db('account').where('id', account.id).del()
     await UserHelper.cleanup(user1)
     await UserHelper.cleanup(user2)
   })

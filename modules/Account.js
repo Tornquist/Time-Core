@@ -24,8 +24,51 @@ function handleRegistration(user, add=true) {
   if (add) {
     this.props.userIDs.push(id)
   } else {
-    this.props.userIds = this.props.userIds.filter(userID => userID !== id)
+    this.props.userIDs = this.props.userIDs.filter(userID => userID !== id)
   }
+}
+
+function sync() {
+  let db = require('../lib/db')()
+  let needsInsert = this.id === null
+  return db.transaction((trx) => {
+    return new Promise((resolve, reject) => {
+      if (!needsInsert) return resolve()
+
+      trx.insert({}).into('account')
+      .then((ids) => ids[0])
+      .then(id => {
+        this.id = id
+        resolve()
+      })
+      .catch(reject)
+    })
+    .then(idSynced => {
+      let actions = []
+      this._addedUsers.forEach(addUser => {
+        let action = trx.insert({
+          account_id: this.id,
+          user_id: addUser
+        }).into('account_user')
+        actions.push(action)
+      })
+
+      this._removedUsers.forEach(addUser => {
+        let action = trx('account_user').where({
+          account_id: this.id,
+          user_id: addUser
+        }).del()
+        actions.push(action)
+      })
+
+      return Promise.all(actions)
+    })
+  })
+  .then(allSynced => {
+    this._addedUsers = []
+    this._removedUsers = []
+    return this
+  })
 }
 
 module.exports = class Account {
@@ -34,22 +77,22 @@ module.exports = class Account {
     this._addedUsers = []
     this._removedUsers = []
 
-    this.id = data.id
+    this.id = data.id || null
     this.props = {
       userIDs: data.userIDs || []
     }
   }
 
   register(user) {
-    handleRegistration.bind(this)(user, true)
+    return handleRegistration.bind(this)(user, true)
   }
 
   unregister(user) {
-    handleRegistration.bind(this)(user, false)
+    return handleRegistration.bind(this)(user, false)
   }
 
   save() {
-    let neverSaved = this.id == null
+    let neverSaved = this.id === null
     let usersToAdd = this._addedUsers.length > 0
     let usersToRemove = this._removedUsers.length > 0
 
@@ -60,6 +103,6 @@ module.exports = class Account {
       return Promise.reject(TimeError.Request.INVALID_STATE)
     }
 
-    throw new Error('Not implemented')
+    return sync.bind(this)()
   }
 }

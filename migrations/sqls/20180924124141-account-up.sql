@@ -9,7 +9,7 @@ CREATE TABLE account_user
   account_id BIGINT UNSIGNED NOT NULL,
   user_id BIGINT UNSIGNED NOT NULL,
 
-  FOREIGN KEY (account_id) REFERENCES account(id),
+  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES user(id),
 
   UNIQUE KEY account_user_link (account_id, user_id)
