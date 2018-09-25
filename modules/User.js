@@ -14,6 +14,7 @@ function insertRecord() {
   return db.insert(data).into('user')
   .then(results => {
     this.id = results[0]
+    this._modifiedProps = []
     return this
   })
 }

@@ -10,6 +10,7 @@ module.exports = (config) => {
     Error: require('./modules/TimeError'),
     Type: require('./modules/Type'),
 
+    Account: require('./modules/Account'),
     Category: require('./modules/Category'),
     Entry: require('./modules/Entry'),
     Token: require('./modules/Token'),
