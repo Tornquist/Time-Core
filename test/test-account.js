@@ -116,11 +116,52 @@ describe('Account Module', () => {
   })
 
   describe('Fetching accounts', () => {
-    it('can be fetched by id')
+    let secondAccount;
+    let fetchedAccounts = []
 
-    it('can fetch all belonging to a specific user')
+    before(async () => {
+      secondAccount = new Time.Account()
+      secondAccount.register(user1)
+      await secondAccount.save()
+    })
 
-    it('loads all registered users regardless of fetch type')
+    it('can be fetched by id', async () => {
+      let newAccount = await Time.Account.fetch(account.id)
+
+      newAccount.id.should.eq(account.id)
+
+      fetchedAccounts.push(newAccount)
+    })
+
+    it('can fetch all belonging to a specific user', async () => {
+      let accounts = await Time.Account.findForUser(user1.id)
+
+      accounts.length.should.eq(2)
+
+      fetchedAccounts = fetchedAccounts.concat(accounts);
+    })
+
+    it('loads all registered users regardless of fetch type', () => {
+      fetchedAccounts.forEach(fetchedAccount => {
+        if (fetchedAccount.id === account.id) {
+          fetchedAccount.props.userIDs.length.should.eq(2)
+          fetchedAccount.props.userIDs.includes(user1.id).should.eq(true)
+          fetchedAccount.props.userIDs.includes(user2.id).should.eq(true)
+
+        } else if (fetchedAccount.id === secondAccount.id) {
+          fetchedAccount.props.userIDs.length.should.eq(1)
+          fetchedAccount.props.userIDs.includes(user1.id).should.eq(true)
+          fetchedAccount.props.userIDs.includes(user2.id).should.eq(false)
+
+        } else {
+          throw new Error("Unknown account")
+        }
+      })
+    })
+
+    after(async () => {
+      await Time._db('account').where('id', secondAccount.id).del()
+    })
   })
 
   after(async () => {

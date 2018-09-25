@@ -71,6 +71,50 @@ function sync() {
   })
 }
 
+async function fetchRecords(filters, limit = null) {
+  let data;
+  try {
+    let db = require('../lib/db')()
+
+    let query = db.select(
+      'account.id', // To avoid adding to data later
+      db.raw('GROUP_CONCAT(account_user.user_id) as userIDs')
+    ).from('account')
+    .leftJoin('account_user', 'account_user.account_id', 'account.id')
+
+    if (filters.id !== undefined) {
+      query = query.where('account_id', filters.id)
+    } else if (filters.user_id !== undefined) {
+      query = query.whereIn(
+        'account_id',
+        db.select('account_id').from('account_user')
+        .where('user_id', filters.user_id)
+      )
+    } else {
+      throw TimeError.Request.INVALID_ACTION
+    }
+
+    query = query.groupBy('account.id')
+
+    if (limit !== null) {
+      query = query.limit(+limit)
+    }
+
+    data = await query
+  } catch (error) {
+    console.log(error)
+    return Promise.reject(TimeError.Data.BAD_CONNECTION)
+  }
+
+  let formattedData = data.map(entry => {
+    let clone = Object.assign({}, entry)
+    clone.userIDs = clone.userIDs.split(',').map(id => +id)
+    return clone
+  })
+
+  return formattedData
+}
+
 module.exports = class Account {
 
   constructor(data = {})  {
@@ -104,5 +148,20 @@ module.exports = class Account {
     }
 
     return sync.bind(this)()
+  }
+
+  static async fetch(id) {
+    let objectData = await fetchRecords({ id }, 1)
+    if (objectData.length == 0) {
+      return Promise.reject(TimeError.Data.NOT_FOUND)
+    }
+    return new Account(objectData[0])
+  }
+
+  static async findForUser(user) {
+    let id = typeof user === "number" ? user : user.id
+    let objectData = await fetchRecords({ user_id: id })
+
+    return objectData.map(accountData => new Account(accountData))
   }
 }
