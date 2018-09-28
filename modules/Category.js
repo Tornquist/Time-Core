@@ -6,7 +6,8 @@ function insertRecord() {
   let db = require('../lib/db')()
   let data = {
     name: this.name,
-    parent_id: this.props.parent_id
+    parent_id: this.props.parent_id,
+    account_id: this.props.account_id
   }
   return db.insert(data).into('category')
   .then(results => {
@@ -34,7 +35,8 @@ async function fetchRecords(filters, limit = null) {
     let query = require('../lib/db')().select(
       'id', // To avoid adding to data later
       'parent_id',
-      'name'
+      'name',
+      'account_id'
     ).from('category')
     .where(filters)
 
@@ -56,6 +58,13 @@ module.exports = class Category {
   set name(newName) {
     this._modifiedProps.push("name")
     this.props.name = newName
+  }
+
+  get account_id() { return this.props.account_id }
+  set account(newAccount) {
+    this._modifiedProps.push("account_id")
+    let id = (typeof newAccount === "number") ? newAccount : newAccount.id
+    this.props.account_id = id
   }
 
   async getParent() {
@@ -86,7 +95,8 @@ module.exports = class Category {
     this.id = data.id
     this.props = {
       parent_id: data.parent_id,
-      name: data.name
+      name: data.name,
+      account_id: data.account_id
     }
   }
 
