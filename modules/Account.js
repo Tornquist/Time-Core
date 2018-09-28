@@ -14,8 +14,11 @@ function handleRegistration(user, add=true) {
 
   let temp = inRemoved && add || inAdded && !add
   if (temp) {
-    let removeFrom = add ? this._removedUsers : this._addedUsers
+    let removeFrom = inAdded ? this._addedUsers : this._removedUsers
     removeFrom = removeFrom.filter(userID => userID !== id)
+    inAdded ?
+      this._addedUsers = removeFrom :
+      this._removedUsers = removeFrom
   } else {
     let addTo = add ? this._addedUsers : this._removedUsers
     addTo.push(id)
