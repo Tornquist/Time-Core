@@ -313,4 +313,8 @@ describe('Entry Module', () => {
       })
     })
   })
+
+  after(async () => {
+    await AccountHelper.cleanupTree(accountTree)
+  })
 })

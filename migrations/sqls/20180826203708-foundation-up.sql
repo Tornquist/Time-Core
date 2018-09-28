@@ -34,7 +34,7 @@ CREATE TABLE entry (
   ended_at timestamp NULL,
 
   FOREIGN KEY (type_id) REFERENCES entry_type(id),
-  FOREIGN KEY (category_id) REFERENCES category(id)
+  FOREIGN KEY (category_id) REFERENCES category(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER entry_updated_at BEFORE UPDATE ON entry FOR EACH ROW
