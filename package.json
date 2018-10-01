@@ -28,7 +28,8 @@
     "db-migrate-mysql": "^1.1.10",
     "mocha": "^5.2.0",
     "mysql": "^2.16.0",
-    "nyc": "^13.0.1"
+    "nyc": "^13.0.1",
+    "uuid": "^3.3.2"
   },
   "dependencies": {
     "bcrypt": "^3.0.0",

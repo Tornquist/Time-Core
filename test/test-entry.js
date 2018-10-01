@@ -7,10 +7,16 @@ let moment = require('moment')
 const config = require('./setup/config')
 const Time = require(process.env.PWD)(config)
 
+const AccountHelper = require('./helpers/account')
+
 describe('Entry Module', () => {
+  let accountTree;
   let category;
   before(async() => {
+    accountTree = await AccountHelper.createTree()
+
     category = new Time.Category()
+    category.account = accountTree.account
     category.name = "Entry test category"
     await category.save()
   })
@@ -208,6 +214,7 @@ describe('Entry Module', () => {
     before(async() => {
       searchCategory = new Time.Category()
       searchCategory.name = "Search Category"
+      searchCategory.account = accountTree.account
       await searchCategory.save()
 
       entryA = new Time.Entry()
@@ -305,5 +312,9 @@ describe('Entry Module', () => {
         throw new Error("Expected rejection")
       })
     })
+  })
+
+  after(async () => {
+    await AccountHelper.cleanupTree(accountTree)
   })
 })

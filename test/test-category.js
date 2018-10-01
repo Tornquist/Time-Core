@@ -6,7 +6,17 @@ let should = chai.should();
 const config = require('./setup/config')
 const Time = require(process.env.PWD)(config)
 
+const AccountHelper = require('./helpers/account')
+
 describe('Category Module', () => {
+  let accountTree;
+
+  before(async () => {
+    AccountHelper.link(Time)
+
+    accountTree = await AccountHelper.createTree()
+  })
+
   let newID;
   let startingName = "Fun Stuff"
   let endingName = "More Fun Stuff"
@@ -22,6 +32,15 @@ describe('Category Module', () => {
 
     it('allows name to be set', done => {
       category.name = startingName
+      done()
+    })
+
+    it('cannot be saved without an account', () => {
+      return category.save().should.be.rejected
+    })
+
+    it('allows account to be set', done => {
+      category.account = accountTree.account
       done()
     })
 
@@ -54,6 +73,7 @@ describe('Category Module', () => {
 
       it('will load with the expected values', done => {
         category.name.should.eq(startingName)
+        category.account_id.should.eq(accountTree.account.id)
         done()
       })
 
@@ -83,9 +103,11 @@ describe('Category Module', () => {
     let child;
     before(async () => {
       parent = new Time.Category({ name: "Parent" })
+      parent.account = accountTree.account
       await parent.save()
 
       child = new Time.Category({ name: "Child" })
+      child.account = accountTree.account
     })
 
     it("rejects setting parent without another Category object", done => {
@@ -139,5 +161,9 @@ describe('Category Module', () => {
       let freshChild = await Time.Category.fetch(child.id)
       should.equal(freshChild.props.parent_id, null)
     })
+  })
+
+  after(async () => {
+    await AccountHelper.cleanupTree(accountTree)
   })
 })
