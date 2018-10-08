@@ -6,6 +6,7 @@
   "scripts": {
     "test": "nyc --reporter=html --reporter=text mocha test/test-* --exit",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "coverage:lcov": "nyc report --reporter=lcov",
     "db-reset": "scripts/setup-db.sh",
     "db-up": "db-migrate up",
     "db-down": "db-migrate down",
