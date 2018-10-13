@@ -1,3 +1,21 @@
+CREATE PROCEDURE category_visualize (
+  IN in_account_id BIGINT
+)
+BEGIN
+  SELECT
+    node.id,
+    CONCAT( REPEAT('    ', COUNT(parent.name) - 1), node.name) AS name
+  FROM
+    category AS node,
+    category AS parent
+  WHERE
+    node.lft BETWEEN parent.lft AND parent.rgt
+    AND node.account_id = in_account_id
+    AND parent.account_id = in_account_id
+  GROUP BY node.id
+  ORDER BY node.lft;
+END;
+
 CREATE PROCEDURE category_add (
   IN in_account_id BIGINT,
   IN in_parent_id BIGINT,
