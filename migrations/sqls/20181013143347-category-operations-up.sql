@@ -71,3 +71,34 @@ BEGIN
     UPDATE category SET lft = lft - 2 WHERE lft > n_rgt AND account_id = n_account_id;
   END IF;
 END;
+
+CREATE PROCEDURE category_move (
+  IN in_node_id BIGINT,
+  IN in_parent_id BIGINT
+)
+BEGIN
+  /* Seed starting values */
+  SET @n_node_lft := (SELECT lft FROM category WHERE id = in_node_id);
+  SET @n_node_rgt := (SELECT rgt FROM category WHERE id = in_node_id);
+  SET @n_node_account_id := (SELECT account_id FROM category WHERE id = in_node_id);
+  SET @n_node_width := (@n_node_rgt - @n_node_lft + 1);
+  SET @n_node_ids := (SELECT GROUP_CONCAT(id) FROM category WHERE lft >= @n_node_lft AND rgt <= @n_node_rgt AND account_id = @n_node_account_id);
+
+  /* Shift over original position */
+  UPDATE category SET lft = lft - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_node_lft;
+  UPDATE category SET rgt = rgt - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt > @n_node_rgt;
+
+  /* Make space in target position */
+  SET @n_parent_lft := (SELECT lft FROM category WHERE id = in_parent_id);
+  SET @n_parent_rgt := (SELECT rgt FROM category WHERE id = in_parent_id);
+  SET @n_parent_account_id := (SELECT account_id FROM category WHERE id = in_parent_id);
+  UPDATE category SET lft = lft + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_parent_lft;
+  UPDATE category SET rgt = rgt + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt >= @n_parent_rgt;
+
+  /* Adjust all moving widths */
+  SET @n_node_shift := (@n_parent_lft + 1 - @n_node_lft);
+  UPDATE category SET lft = lft + @n_node_shift, rgt = rgt + @n_node_shift WHERE FIND_IN_SET(id, @n_node_ids) > 0;
+
+  /* Verify moving account ids */
+  UPDATE category SET account_id = @n_parent_account_id WHERE FIND_IN_SET(id, @n_node_ids) > 0;
+END;
