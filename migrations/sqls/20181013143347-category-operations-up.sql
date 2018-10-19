@@ -77,38 +77,58 @@ CREATE PROCEDURE category_move (
   IN in_parent_id BIGINT
 )
 BEGIN
+  DECLARE n_node_lft INT;
+  DECLARE n_node_rgt INT;
+  DECLARE n_node_width INT;
+  DECLARE n_node_account_id BIGINT;
+  DECLARE n_node_shift INT;
+
+  DECLARE n_parent_lft INT;
+  DECLARE n_parent_rgt INT;
+  DECLARE n_parent_account_id BIGINT;
+
+  DECLARE n_node_ids TEXT;
+
   /* Seed starting values */
-  SET @n_node_lft := (SELECT lft FROM category WHERE id = in_node_id);
-  SET @n_node_rgt := (SELECT rgt FROM category WHERE id = in_node_id);
-  SET @n_node_account_id := (SELECT account_id FROM category WHERE id = in_node_id);
-  SET @n_node_width := (@n_node_rgt - @n_node_lft + 1);
-  SET @n_node_ids := (SELECT GROUP_CONCAT(id) FROM category WHERE lft >= @n_node_lft AND rgt <= @n_node_rgt AND account_id = @n_node_account_id);
+  SELECT
+    lft, rgt, rgt - lft + 1, account_id
+  INTO
+    n_node_lft, n_node_rgt, n_node_width, n_node_account_id
+  FROM category WHERE id = in_node_id;
+
+  SET n_node_ids := (SELECT GROUP_CONCAT(id) FROM category WHERE lft >= n_node_lft AND rgt <= n_node_rgt AND account_id = n_node_account_id);
 
   /* Get initial parent values (will be overridden later. Used for validation) */
-  SET @n_parent_lft := (SELECT lft FROM category WHERE id = in_parent_id);
-  SET @n_parent_rgt := (SELECT rgt FROM category WHERE id = in_parent_id);
-  SET @n_parent_account_id := (SELECT account_id FROM category WHERE id = in_parent_id);
 
-  if (@n_node_account_id = @n_parent_account_id) AND @n_parent_lft > @n_node_lft AND @n_parent_rgt < @n_node_rgt THEN
+  SELECT
+    lft, rgt, account_id
+  INTO
+    n_parent_lft, n_parent_rgt, n_parent_account_id
+  FROM category WHERE id = in_parent_id;
+
+  if (n_node_account_id = n_parent_account_id) AND n_parent_lft > n_node_lft AND n_parent_rgt < n_node_rgt THEN
     SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'New parent cannot be child of target';
   END IF;
 
   /* Shift over original position */
-  UPDATE category SET lft = lft - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_node_lft;
-  UPDATE category SET rgt = rgt - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt > @n_node_rgt;
+  UPDATE category SET lft = lft - n_node_width WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_node_lft;
+  UPDATE category SET rgt = rgt - n_node_width WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt > n_node_rgt;
 
   /* Make space in target position */
-  SET @n_parent_lft := (SELECT lft FROM category WHERE id = in_parent_id);
-  SET @n_parent_rgt := (SELECT rgt FROM category WHERE id = in_parent_id);
-  SET @n_parent_account_id := (SELECT account_id FROM category WHERE id = in_parent_id);
-  UPDATE category SET lft = lft + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_parent_lft;
-  UPDATE category SET rgt = rgt + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt >= @n_parent_lft;
+  SELECT
+    lft, rgt
+  INTO
+    n_parent_lft, n_parent_rgt
+  FROM category WHERE id = in_parent_id;
+
+  UPDATE category SET lft = lft + n_node_width WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_parent_lft;
+  UPDATE category SET rgt = rgt + n_node_width WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt >= n_parent_lft;
 
   /* Adjust all moving widths */
-  SET @n_node_shift := (@n_parent_lft + 1 - @n_node_lft);
-  UPDATE category SET lft = lft + @n_node_shift, rgt = rgt + @n_node_shift WHERE FIND_IN_SET(id, @n_node_ids) > 0;
+  SET n_node_shift := (n_parent_lft + 1 - n_node_lft);
+  UPDATE category SET lft = lft + n_node_shift, rgt = rgt + n_node_shift WHERE FIND_IN_SET(id, n_node_ids) > 0;
 
   /* Verify moving account ids */
-  UPDATE category SET account_id = @n_parent_account_id WHERE FIND_IN_SET(id, @n_node_ids) > 0;
+  UPDATE category SET account_id = n_parent_account_id WHERE FIND_IN_SET(id, n_node_ids) > 0;
 END;
