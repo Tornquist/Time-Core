@@ -84,6 +84,16 @@ BEGIN
   SET @n_node_width := (@n_node_rgt - @n_node_lft + 1);
   SET @n_node_ids := (SELECT GROUP_CONCAT(id) FROM category WHERE lft >= @n_node_lft AND rgt <= @n_node_rgt AND account_id = @n_node_account_id);
 
+  /* Get initial parent values (will be overridden later. Used for validation) */
+  SET @n_parent_lft := (SELECT lft FROM category WHERE id = in_parent_id);
+  SET @n_parent_rgt := (SELECT rgt FROM category WHERE id = in_parent_id);
+  SET @n_parent_account_id := (SELECT account_id FROM category WHERE id = in_parent_id);
+
+  if (@n_node_account_id = @n_parent_account_id) AND @n_parent_lft > @n_node_lft AND @n_parent_rgt < @n_node_rgt THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'New parent cannot be child of target';
+  END IF;
+
   /* Shift over original position */
   UPDATE category SET lft = lft - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_node_lft;
   UPDATE category SET rgt = rgt - @n_node_width WHERE account_id = @n_node_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt > @n_node_rgt;
@@ -93,7 +103,7 @@ BEGIN
   SET @n_parent_rgt := (SELECT rgt FROM category WHERE id = in_parent_id);
   SET @n_parent_account_id := (SELECT account_id FROM category WHERE id = in_parent_id);
   UPDATE category SET lft = lft + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND lft > @n_parent_lft;
-  UPDATE category SET rgt = rgt + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt >= @n_parent_rgt;
+  UPDATE category SET rgt = rgt + @n_node_width WHERE account_id = @n_parent_account_id AND FIND_IN_SET(id, @n_node_ids) = 0 AND rgt >= @n_parent_lft;
 
   /* Adjust all moving widths */
   SET @n_node_shift := (@n_parent_lft + 1 - @n_node_lft);
