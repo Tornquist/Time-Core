@@ -1,3 +1,9 @@
+/*
+  category_visualize will build a tree view to visualize the relationships
+  between all of the nodes in a given account.
+
+  This method does not modify any data and should only be used for auditing.
+*/
 CREATE PROCEDURE category_visualize (
   IN in_account_id BIGINT
 )
@@ -18,6 +24,13 @@ BEGIN
   ORDER BY node.lft;
 END;
 
+/*
+  category_add will insert a new node as a child to the specified parent in the
+  specified account. The node's name is controlled by in_name.
+
+  This method is destructive, and should be performed in isolation for a given
+  account. It can safely be used while other account trees are being modified.
+*/
 CREATE PROCEDURE category_add (
   IN in_account_id BIGINT,
   IN in_parent_id BIGINT,
@@ -26,17 +39,35 @@ CREATE PROCEDURE category_add (
 BEGIN
   DECLARE n_new_lft INT;
   DECLARE n_new_rgt INT;
-  SELECT rgt, rgt + 1 INTO n_new_lft, n_new_rgt FROM category WHERE id = in_parent_id AND account_id = in_account_id;
+
+  SELECT
+    rgt, rgt + 1
+  INTO
+    n_new_lft, n_new_rgt
+  FROM category WHERE id = in_parent_id AND account_id = in_account_id;
+
   IF n_new_lft IS NULL THEN
     SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'Category with requested parent_id and account_id not found';
   END IF;
+
   UPDATE category SET rgt = rgt + 2 WHERE rgt >= n_new_lft AND account_id = in_account_id;
   UPDATE category SET lft = lft + 2 WHERE lft > n_new_lft AND account_id = in_account_id;
-  INSERT INTO category(name, lft, rgt, account_id) VALUES(in_name, n_new_lft, n_new_rgt, in_account_id);
+
+  INSERT INTO category
+    (name, lft, rgt, account_id)
+  VALUES
+    (in_name, n_new_lft, n_new_rgt, in_account_id);
   SELECT LAST_INSERT_ID() as id;
 END;
 
+/*
+  category_delete will delete a node identified by in_node_id and will either
+  move all of the children up one level, or destroy them as well.
+
+  This is destructive and non-reversible, and should be performed in isolation
+  for a given account.
+*/
 CREATE PROCEDURE category_delete (
   IN in_node_id BIGINT,
   IN in_delete_children BOOLEAN
@@ -72,6 +103,15 @@ BEGIN
   END IF;
 END;
 
+/*
+  category_move will move entire trees of nodes to a new parent. This method
+  does not allow nodes to be moved onto their own children, but otherwise has
+  no limitations.
+
+  It will update the tree automatically if nodes are moved between accounts.
+  This is destructive and no other actions should be applied to the tree of
+  any accounts impacted by this change while it is being performed.
+*/
 CREATE PROCEDURE category_move (
   IN in_node_id BIGINT,
   IN in_parent_id BIGINT
