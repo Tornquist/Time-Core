@@ -25,6 +25,33 @@ BEGIN
 END;
 
 /*
+  category_setup will make sure a given account id is ready for use.
+  This method will make sure a root node exists. This is safe to call multiple
+  times. This will only perform actions as-needed.
+*/
+CREATE PROCEDURE category_setup (
+  IN in_account_id BIGINT
+)
+BEGIN
+  DECLARE n_needs_root BOOLEAN;
+
+  SELECT min(lft) is NULL
+    INTO n_needs_root
+    FROM category
+   WHERE account_id = in_account_id;
+
+  IF n_needs_root = 1 THEN
+    INSERT INTO category
+      (account_id, lft, rgt, name)
+    VALUES
+      (in_account_id, 1, 2, 'root');
+    SELECT LAST_INSERT_ID() as id;
+  ELSE
+    SELECT id FROM category WHERE account_id = in_account_id AND lft = 1;
+  END IF;
+END;
+
+/*
   category_add will insert a new node as a child to the specified parent in the
   specified account. The node's name is controlled by in_name.
 
@@ -136,7 +163,13 @@ BEGIN
     n_node_lft, n_node_rgt, n_node_width, n_node_account_id
   FROM category WHERE id = in_node_id;
 
-  SET n_node_ids := (SELECT GROUP_CONCAT(id) FROM category WHERE lft >= n_node_lft AND rgt <= n_node_rgt AND account_id = n_node_account_id);
+  SET n_node_ids := (
+    SELECT GROUP_CONCAT(id)
+      FROM category
+     WHERE lft >= n_node_lft
+       AND rgt <= n_node_rgt
+       AND account_id = n_node_account_id
+  );
 
   /* Get initial parent values (will be overridden later. Used for validation) */
 
@@ -152,8 +185,11 @@ BEGIN
   END IF;
 
   /* Shift over original position */
-  UPDATE category SET lft = lft - n_node_width WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_node_lft;
-  UPDATE category SET rgt = rgt - n_node_width WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt > n_node_rgt;
+  UPDATE category SET lft = lft - n_node_width
+  WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_node_lft;
+
+  UPDATE category SET rgt = rgt - n_node_width
+  WHERE account_id = n_node_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt > n_node_rgt;
 
   /* Make space in target position */
   SELECT
@@ -162,8 +198,11 @@ BEGIN
     n_parent_lft, n_parent_rgt
   FROM category WHERE id = in_parent_id;
 
-  UPDATE category SET lft = lft + n_node_width WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_parent_lft;
-  UPDATE category SET rgt = rgt + n_node_width WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt >= n_parent_lft;
+  UPDATE category SET lft = lft + n_node_width
+  WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND lft > n_parent_lft;
+
+  UPDATE category SET rgt = rgt + n_node_width
+  WHERE account_id = n_parent_account_id AND FIND_IN_SET(id, n_node_ids) = 0 AND rgt >= n_parent_lft;
 
   /* Adjust all moving widths */
   SET n_node_shift := (n_parent_lft + 1 - n_node_lft);
