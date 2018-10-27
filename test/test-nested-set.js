@@ -29,8 +29,17 @@ describe('Nested Set Methods (Category SQL Procedures)', () => {
     return results[0][0][0].id
   }
 
+  let category_move = async (nodeID, parentID) => {
+    await Time._db.raw(
+      'CALL category_move(?, ?)',
+      [nodeID, parentID]
+    );
+  }
+
   let category_visualize = async (accountID) => {
     let results = await Time._db.raw('CALL category_visualize(?)', accountID);
+
+    console.log("Tree for Account", accountID)
     results[0][0].forEach(result => {
       console.log(result.name)
     })
@@ -178,6 +187,137 @@ describe('Nested Set Methods (Category SQL Procedures)', () => {
               '1': { lft: 17, rgt: 20, parent_id: ids.limeID },
                 '2': { lft: 18, rgt: 19, parent_id: ids.oneID },
               '3': { lft: 21, rgt: 22, parent_id: ids.limeID }
+        })
+      })
+    })
+
+    describe('Moving categories', () => {
+      before(async () => {
+        // Initialize Account B
+        ids.qID = await category_add(accountBID, ids.accountBRoot, 'Q')
+        ids.wID = await category_add(accountBID, ids.accountBRoot, 'W')
+        ids.eID = await category_add(accountBID, ids.qID, 'E')
+        ids.rID = await category_add(accountBID, ids.accountBRoot, 'R')
+        ids.tID = await category_add(accountBID, ids.qID, 'T')
+        ids.yID = await category_add(accountBID, ids.wID, 'Y')
+
+        let bTree = await category_state(accountBID)
+        verifyTree(bTree, {
+          'root': { lft: 1, rgt: 14, parent_id: null },
+            'Q': { lft: 2, rgt: 7, parent_id: ids.accountBRoot },
+              'E': { lft: 3, rgt: 4, parent_id: ids.qID },
+              'T': { lft: 5, rgt: 6, parent_id: ids.qID },
+            'W': { lft: 8, rgt: 11, parent_id: ids.accountBRoot },
+              'Y': { lft: 9, rgt: 10, parent_id: ids.wID },
+            'R': { lft: 12, rgt: 13, parent_id: ids.accountBRoot }
+        })
+
+        // Initialize Account C
+        ids.hID = await category_add(accountCID, ids.accountCRoot, 'H')
+        ids.jID = await category_add(accountCID, ids.accountCRoot, 'J')
+        ids.kID = await category_add(accountCID, ids.accountCRoot, 'K')
+        ids.lID = await category_add(accountCID, ids.kID, 'L')
+
+        let cTree = await category_state(accountCID)
+        verifyTree(cTree, {
+          'root': { lft: 1, rgt: 10, parent_id: null },
+            'H': { lft: 2, rgt: 3, parent_id: ids.accountCRoot },
+            'J': { lft: 4, rgt: 5, parent_id: ids.accountCRoot },
+            'K': { lft: 6, rgt: 9, parent_id: ids.accountCRoot },
+              'L': { lft: 7, rgt: 8, parent_id: ids.kID }
+        })
+      })
+
+      describe('Within the same account', () => {
+        it('it allows moving a leaf node', async () => {
+          // Starts from:
+          // Adding Categories
+          //   Updating the tree structure (lft and rgt)
+          //     Inserts multiple children correctly
+          await category_move(ids.fourID, ids.limeID)
+
+          let tree = await category_state(accountAID)
+          verifyTree(tree, {
+            'root': { lft: 1, rgt: 24, parent_id: null },
+              'Lemons': { lft: 2, rgt: 11, parent_id: ids.accountARoot },
+                'A': { lft: 3, rgt: 6, parent_id: ids.lemonID },
+                  'D': { lft: 4, rgt: 5, parent_id: ids.aID },
+                'B': { lft: 7, rgt: 10, parent_id: ids.lemonID },
+                  'C': { lft: 8, rgt: 9, parent_id: ids.bID },
+              'Limes': { lft: 12, rgt: 23, parent_id: ids.accountARoot },
+                '4': { lft: 13, rgt: 14, parent_id: ids.limeID },
+                'Oranges': { lft: 15, rgt: 16, parent_id: ids.limeID },
+                '1': { lft: 17, rgt: 20, parent_id: ids.limeID },
+                  '2': { lft: 18, rgt: 19, parent_id: ids.oneID },
+                '3': { lft: 21, rgt: 22, parent_id: ids.limeID }
+          })
+        })
+
+        it('it allows moving a tree', async () => {
+          // Starts from:
+          // Moving categories
+          //   it allows moving a leaf node within an account
+
+          await category_move(ids.oneID, ids.cID)
+
+          let endingTree = await category_state(accountAID)
+          verifyTree(endingTree, {
+            'root': { lft: 1, rgt: 24, parent_id: null },
+              'Lemons': { lft: 2, rgt: 15, parent_id: ids.accountARoot },
+                'A': { lft: 3, rgt: 6, parent_id: ids.lemonID },
+                  'D': { lft: 4, rgt: 5, parent_id: ids.aID },
+                'B': { lft: 7, rgt: 14, parent_id: ids.lemonID },
+                  'C': { lft: 8, rgt: 13, parent_id: ids.bID },
+                    '1': { lft: 9, rgt: 12, parent_id: ids.cID },
+                      '2': { lft: 10, rgt: 11, parent_id: ids.oneID },
+              'Limes': { lft: 16, rgt: 23, parent_id: ids.accountARoot },
+                '4': { lft: 17, rgt: 18, parent_id: ids.limeID },
+                'Oranges': { lft: 19, rgt: 20, parent_id: ids.limeID },
+                '3': { lft: 21, rgt: 22, parent_id: ids.limeID }
+          })
+        })
+
+        it('it allows moving a tree up (moves to front)', async () => {
+          // Starts from:
+          // Moving categories
+          //   it allows moving a tree within an account
+
+          await category_move(ids.oneID, ids.bID)
+
+          let endingTree = await category_state(accountAID)
+          verifyTree(endingTree, {
+            'root': { lft: 1, rgt: 24, parent_id: null },
+              'Lemons': { lft: 2, rgt: 15, parent_id: ids.accountARoot },
+                'A': { lft: 3, rgt: 6, parent_id: ids.lemonID },
+                  'D': { lft: 4, rgt: 5, parent_id: ids.aID },
+                'B': { lft: 7, rgt: 14, parent_id: ids.lemonID },
+                  '1': { lft: 8, rgt: 11, parent_id: ids.bID },
+                    '2': { lft: 9, rgt: 10, parent_id: ids.oneID },
+                  'C': { lft: 12, rgt: 13, parent_id: ids.bID },
+              'Limes': { lft: 16, rgt: 23, parent_id: ids.accountARoot },
+                '4': { lft: 17, rgt: 18, parent_id: ids.limeID },
+                'Oranges': { lft: 19, rgt: 20, parent_id: ids.limeID },
+                '3': { lft: 21, rgt: 22, parent_id: ids.limeID }
+          })
+        })
+
+        it('it prevents moving a tree to a child in its structure', async () => {
+          // Starts from:
+          // Moving categories
+          //   it allows moving a tree up within an account (moves to front)
+
+          let failureMessage = 'New parent cannot be child of target'
+
+          try {
+            await category_move(ids.oneID, ids.twoID)
+            return Promise.reject(new Error(`Expected rejection with '${failureMessage}'`))
+          } catch(err) {
+            let includesCorrectError = err.message.includes(failureMessage)
+
+            if (!includesCorrectError) {
+              return Promise.reject(new Error(`Expected rejection with '${failureMessage}'. Different error found`))
+            }
+          }
         })
       })
     })
