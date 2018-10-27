@@ -10,6 +10,7 @@ CREATE PROCEDURE category_visualize (
 BEGIN
   SELECT
     node.id,
+    node.parent_id,
     node.lft,
     node.rgt,
     CONCAT( REPEAT('|    ', COUNT(parent.name) - 1), node.name) AS name
@@ -82,9 +83,9 @@ BEGIN
   UPDATE category SET lft = lft + 2 WHERE lft > n_new_lft AND account_id = in_account_id;
 
   INSERT INTO category
-    (name, lft, rgt, account_id)
+    (name, parent_id, lft, rgt, account_id)
   VALUES
-    (in_name, n_new_lft, n_new_rgt, in_account_id);
+    (in_name, in_parent_id, n_new_lft, n_new_rgt, in_account_id);
   SELECT LAST_INSERT_ID() as id;
 END;
 
@@ -104,11 +105,12 @@ BEGIN
   DECLARE n_rgt INT;
   DECLARE n_width INT;
   DECLARE n_account_id BIGINT;
+  DECLARE n_parent_id BIGINT;
 
   SELECT
-    rgt - lft + 1, lft, rgt, account_id
+    rgt - lft + 1, lft, rgt, account_id, parent_id
   INTO
-    n_width, n_lft, n_rgt, n_account_id
+    n_width, n_lft, n_rgt, n_account_id, n_parent_id
   FROM category WHERE id = in_node_id;
 
   IF n_lft IS NULL THEN
@@ -122,6 +124,7 @@ BEGIN
     UPDATE category SET rgt = rgt - n_width WHERE rgt > n_rgt AND account_id = n_account_id;
     UPDATE category SET lft = lft - n_width WHERE lft > n_rgt AND account_id = n_account_id;
   ELSE
+    UPDATE category SET parent_id = n_parent_id WHERE parent_id = in_node_id;
     DELETE FROM category WHERE id = in_node_id;
 
     UPDATE category SET rgt = rgt - 1, lft = lft - 1 WHERE lft BETWEEN n_lft AND n_rgt AND account_id = n_account_id;
@@ -172,7 +175,6 @@ BEGIN
   );
 
   /* Get initial parent values (will be overridden later. Used for validation) */
-
   SELECT
     lft, rgt, account_id
   INTO
@@ -210,4 +212,7 @@ BEGIN
 
   /* Verify moving account ids */
   UPDATE category SET account_id = n_parent_account_id WHERE FIND_IN_SET(id, n_node_ids) > 0;
+
+  /* Update target node parent */
+  UPDATE category SET parent_id = in_parent_id WHERE id = in_node_id;
 END;

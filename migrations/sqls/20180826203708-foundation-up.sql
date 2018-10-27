@@ -12,9 +12,12 @@ CREATE TABLE category (
   id serial primary key,
   created_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
   updated_at timestamp NOT NULL DEFAULT LOCALTIMESTAMP,
+  parent_id BIGINT UNSIGNED NULL,
   lft INT NOT NULL,
   rgt INT NOT NULL,
-  name varchar(30) NOT NULL
+  name varchar(30) NOT NULL,
+
+  FOREIGN KEY (parent_id) REFERENCES category(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER category_updated_at BEFORE UPDATE ON category FOR EACH ROW
