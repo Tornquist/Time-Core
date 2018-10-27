@@ -36,6 +36,13 @@ describe('Nested Set Methods (Category SQL Procedures)', () => {
     );
   }
 
+  let category_delete = async (nodeID, deleteChildren) => {
+    await Time._db.raw(
+      'CALL category_delete(?, ?)',
+      [nodeID, deleteChildren]
+    );
+  }
+
   let category_visualize = async (accountID) => {
     let results = await Time._db.raw('CALL category_visualize(?)', accountID);
 
@@ -453,6 +460,100 @@ describe('Nested Set Methods (Category SQL Procedures)', () => {
       it('does not impact other accounts', async () => {
         let cTree = await category_state(accountCID)
         verifyTree(cTree, cStartingTree)
+      })
+    })
+  })
+
+  describe('Deleting categories', () => {
+    it('allows leaf nodes to be deleted', async () => {
+      // Starts from:
+      // Moving categories
+      //   Within different accounts
+      //     it allows moving part of a tree back
+
+      await category_delete(ids.twoID, true)
+
+      let bTree = await category_state(accountBID)
+      verifyTree(bTree, {
+        'root': { lft: 1, rgt: 24, parent_id: null },
+          'Q': { lft: 2, rgt: 15, parent_id: ids.accountBRoot },
+            'E': { lft: 3, rgt: 12, parent_id: ids.qID },
+              'Lemons': { lft: 4, rgt: 11, parent_id: ids.eID },
+                'B': { lft: 5, rgt: 10, parent_id: ids.lemonID },
+                  '1': { lft: 6, rgt: 7, parent_id: ids.bID },
+                  'C': { lft: 8, rgt: 9, parent_id: ids.bID },
+            'T': { lft: 13, rgt: 14, parent_id: ids.qID },
+          'W': { lft: 16, rgt: 19, parent_id: ids.accountBRoot },
+            'Y': { lft: 17, rgt: 18, parent_id: ids.wID },
+          'R': { lft: 20, rgt: 23, parent_id: ids.accountBRoot },
+            '3': { lft: 21, rgt: 22, parent_id: ids.rID }
+      })
+    })
+
+    it('allows nodes and their children to be deleted', async () => {
+      // Starts from:
+      // Moving categories
+      //   Deleting categories
+      //     allows leaf nodes to be deleted
+
+      await category_delete(ids.lemonID, true)
+
+      let bTree = await category_state(accountBID)
+      verifyTree(bTree, {
+        'root': { lft: 1, rgt: 16, parent_id: null },
+          'Q': { lft: 2, rgt: 7, parent_id: ids.accountBRoot },
+            'E': { lft: 3, rgt: 4, parent_id: ids.qID },
+            'T': { lft: 5, rgt: 6, parent_id: ids.qID },
+          'W': { lft: 8, rgt: 11, parent_id: ids.accountBRoot },
+            'Y': { lft: 9, rgt: 10, parent_id: ids.wID },
+          'R': { lft: 12, rgt: 15, parent_id: ids.accountBRoot },
+            '3': { lft: 13, rgt: 14, parent_id: ids.rID }
+      })
+    })
+
+    it('allows nodes to be deleted with their children saved', async () => {
+      // Starts from:
+      // Moving categories
+      //   Deleting categories
+      //     allows nodes and their children to be deleted
+
+      await category_delete(ids.qID, false)
+
+      let bTree = await category_state(accountBID)
+      verifyTree(bTree, {
+        'root': { lft: 1, rgt: 14, parent_id: null },
+          'E': { lft: 2, rgt: 3, parent_id: ids.accountBRoot },
+          'T': { lft: 4, rgt: 5, parent_id: ids.accountBRoot },
+          'W': { lft: 6, rgt: 9, parent_id: ids.accountBRoot },
+            'Y': { lft: 7, rgt: 8, parent_id: ids.wID },
+          'R': { lft: 10, rgt: 13, parent_id: ids.accountBRoot },
+            '3': { lft: 11, rgt: 12, parent_id: ids.rID }
+      })
+    })
+
+    it('allows nodes to be deleted and children saved with multiple levels of children', async () => {
+      // Starts from:
+      // Moving categories
+      //   Deleting categories
+      //     allows nodes to be deleted with their children saved
+
+      ids.nID = await category_add(accountBID, ids.yID, 'N')
+      ids.mID = await category_add(accountBID, ids.nID, 'M')
+      ids.lID = await category_add(accountBID, ids.nID, 'L')
+
+      await category_delete(ids.wID, false)
+
+      let bTree = await category_state(accountBID)
+      verifyTree(bTree, {
+        'root': { lft: 1, rgt: 18, parent_id: null },
+          'E': { lft: 2, rgt: 3, parent_id: ids.accountBRoot },
+          'T': { lft: 4, rgt: 5, parent_id: ids.accountBRoot },
+          'Y': { lft: 6, rgt: 13, parent_id: ids.accountBRoot },
+            'N': { lft: 7, rgt: 12, parent_id: ids.yID },
+              'M': { lft: 8, rgt: 9, parent_id: ids.nID },
+              'L': { lft: 10, rgt: 11, parent_id: ids.nID },
+          'R': { lft: 14, rgt: 17, parent_id: ids.accountBRoot },
+            '3': { lft: 15, rgt: 16, parent_id: ids.rID }
       })
     })
   })
