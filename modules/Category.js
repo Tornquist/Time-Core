@@ -4,14 +4,25 @@ let TimeError = require("./TimeError")
 
 function insertRecord() {
   let db = require('../lib/db')()
-  let data = {
-    name: this.name,
-    parent_id: this.props.parent_id,
-    account_id: this.props.account_id
-  }
-  return db.insert(data).into('category')
-  .then(results => {
-    this.id = results[0]
+
+  return (
+    this.props.parent_id == null ?
+      (db.select('id')
+        .from('category')
+        .whereNull('parent_id')
+        .andWhere('account_id', this.props.account_id)) :
+      Promise.resolve([{ id: this.props.parent_id }])
+  )
+  .then(results => results[0].id)
+  .then(parentID =>
+    db.raw(
+      'CALL category_add(?, ?, ?)',
+      [this.props.account_id, parentID, this.name]
+    )
+  )
+  .then(results => results[0][0][0].id)
+  .then(newID => {
+    this.id = newID
     return this
   })
 }

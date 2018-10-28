@@ -13,6 +13,7 @@ describe('Entry Module', () => {
   let accountTree;
   let category;
   before(async() => {
+    AccountHelper.link(Time)
     accountTree = await AccountHelper.createTree()
 
     category = new Time.Category()
