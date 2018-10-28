@@ -45,6 +45,9 @@ function sync() {
         resolve()
       })
       .catch(reject)
+      .then(newAccountCreated =>
+        trx.raw('CALL category_setup(?)', this.id)
+      )
     })
     .then(idSynced => {
       let actions = []
