@@ -2,27 +2,52 @@
 
 let TimeError = require("./TimeError")
 
-function insertRecord() {
+function getRootID(accountID) {
+  let db = require('../lib/db')()
+  return db.select('id')
+  .from('category')
+  .whereNull('parent_id')
+  .andWhere('account_id', accountID)
+  .then(results => (results[0] || {}).id)
+}
+
+function getAccountID(parentID) {
+  let db = require('../lib/db')()
+  return db.select('account_id')
+  .from('category')
+  .where('id', parentID)
+  .then(results => (results[0] || {}).account_id)
+}
+
+async function insertRecord() {
   let db = require('../lib/db')()
 
-  return (
-    this.props.parent_id == null ?
-      (db.select('id')
-        .from('category')
-        .whereNull('parent_id')
-        .andWhere('account_id', this.props.account_id)) :
-      Promise.resolve([{ id: this.props.parent_id }])
-  )
-  .then(results => results[0].id)
-  .then(parentID =>
-    db.raw(
-      'CALL category_add(?, ?, ?)',
-      [this.props.account_id, parentID, this.name]
-    )
+  let parentSet = this.props.parent_id !== undefined
+  let accountSet = this.props.account_id !== undefined
+
+  let parentID = this.props.parent_id
+  let accountID = this.props.account_id
+
+  if (parentSet && accountSet) {
+    // No action: Auto validated in category_add
+  } else if (parentSet) {
+    accountID = await getAccountID(parentID)
+  } else if (accountSet) {
+    parentID = await getRootID(accountID)
+  }
+
+  return db.raw(
+    'CALL category_add(?, ?, ?)',
+    [accountID, parentID, this.name]
   )
   .then(results => results[0][0][0].id)
   .then(newID => {
     this.id = newID
+
+    this.props.account_id = accountID
+    this.props.parent_id = parentID
+    this._modifiedProps = []
+
     return this
   })
 }

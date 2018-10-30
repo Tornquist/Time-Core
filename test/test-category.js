@@ -35,7 +35,7 @@ describe('Category Module', () => {
       done()
     })
 
-    it('cannot be saved without an account', () => {
+    it('cannot be saved without an account or parent', () => {
       return category.save().should.be.rejected
     })
 
@@ -53,6 +53,46 @@ describe('Category Module', () => {
       category.id.should.be.a('number')
       newID = category.id
       done()
+    })
+
+    it('will be created under the account root', async () => {
+      let accountRootNode = await Time._db.select('id')
+      .from('category')
+      .whereNull('parent_id')
+      .andWhere('account_id', category.account_id)
+      .then(results => (results[0] || {}).id)
+
+      category.props.parent_id.should.eq(accountRootNode)
+    })
+
+    it('can be created with parent and no account', async () => {
+      let newCategory = new Time.Category()
+      newCategory.name = 'No Account'
+      newCategory.parent = category
+
+      await newCategory.save()
+
+      newCategory.account_id.should.eq(category.account_id)
+    })
+
+    it('will be rejected if category and parent are mismatched', done => {
+      let newCategory = new Time.Category()
+      newCategory.name = 'Will throw'
+      newCategory.parent = category
+      newCategory.account = 100000
+
+      newCategory.save()
+      .then(success => {
+        done(new Error('Should have been rejected'))
+      })
+      .catch(err => {
+        let correctError = err.message.includes('Category with requested parent_id and account_id not found')
+        if (correctError) {
+          done()
+        } else {
+          done(new Error('Incorrect error returned'))
+        }
+      })
     })
   })
 
