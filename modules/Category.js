@@ -34,6 +34,8 @@ async function insertRecord() {
     accountID = await getAccountID(parentID)
   } else if (accountSet) {
     parentID = await getRootID(accountID)
+  } else {
+    throw TimeError.Category.INSUFFICIENT_PARENT_OR_ACCOUNT
   }
 
   return db.raw(
@@ -49,6 +51,14 @@ async function insertRecord() {
     this._modifiedProps = []
 
     return this
+  })
+  .catch(err => {
+    let consistencyMessage = 'Category with requested parent_id and account_id not found'
+    let isInconsistent = err.message.includes(consistencyMessage)
+    if (isInconsistent) {
+      throw TimeError.Category.INCONSISTENT_PARENT_AND_ACCOUNT
+    }
+    throw err
   })
 }
 

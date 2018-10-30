@@ -36,7 +36,8 @@ describe('Category Module', () => {
     })
 
     it('cannot be saved without an account or parent', () => {
-      return category.save().should.be.rejected
+      return category.save()
+      .should.be.rejectedWith(Time.Error.Category.INSUFFICIENT_PARENT_OR_ACCOUNT)
     })
 
     it('allows account to be set', done => {
@@ -75,24 +76,14 @@ describe('Category Module', () => {
       newCategory.account_id.should.eq(category.account_id)
     })
 
-    it('will be rejected if category and parent are mismatched', done => {
+    it('will be rejected if category and parent are mismatched', () => {
       let newCategory = new Time.Category()
       newCategory.name = 'Will throw'
       newCategory.parent = category
       newCategory.account = 100000
 
-      newCategory.save()
-      .then(success => {
-        done(new Error('Should have been rejected'))
-      })
-      .catch(err => {
-        let correctError = err.message.includes('Category with requested parent_id and account_id not found')
-        if (correctError) {
-          done()
-        } else {
-          done(new Error('Incorrect error returned'))
-        }
-      })
+      return newCategory.save()
+      .should.be.rejectedWith(Time.Error.Category.INCONSISTENT_PARENT_AND_ACCOUNT)
     })
   })
 

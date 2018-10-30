@@ -14,6 +14,10 @@ const UNIQUE_TOKEN_NOT_FOUND = new Error("Unable to find unique token")
 const TOKEN_EXPIRED = new Error("Token has expired")
 const TOKEN_INVALID = new Error("Token has does not match")
 
+// Category Errors
+const INSUFFICIENT_PARENT_OR_ACCOUNT = new Error('A parent or account must be provided')
+const INCONSISTENT_PARENT_AND_ACCOUNT = new Error('Invalid Parent and Account Combination')
+
 module.exports = {
   Data: {
     NOT_FOUND,
@@ -30,5 +34,9 @@ module.exports = {
     UNIQUE_TOKEN_NOT_FOUND,
     TOKEN_EXPIRED,
     TOKEN_INVALID
+  },
+  Category: {
+    INSUFFICIENT_PARENT_OR_ACCOUNT,
+    INCONSISTENT_PARENT_AND_ACCOUNT
   }
 }
