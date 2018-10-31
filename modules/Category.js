@@ -1,6 +1,7 @@
 'use strict'
 
 let TimeError = require("./TimeError")
+const arrayHelper = require('../helpers/array')
 
 function getRootID(accountID) {
   let db = require('../lib/db')()
@@ -62,14 +63,55 @@ async function insertRecord() {
   })
 }
 
-function updateRecord() {
+async function updateRecord() {
   let db = require('../lib/db')()
+
+  let parentSet = this._modifiedProps.includes('parent_id')
+  let accountSet = this._modifiedProps.includes('account_id')
+
+  let parentID = this.props.parent_id
+  let accountID = this.props.account_id
+
+  let moveTo = null;
+  if (parentSet && accountSet) {
+    let targetAccountID = await getAccountID(parentID)
+    if (targetAccountID !== accountID) {
+      throw TimeError.Category.INCONSISTENT_PARENT_AND_ACCOUNT
+    }
+    moveTo = parentID
+  } else if (parentSet) {
+    moveTo = parentID
+  } else if (accountSet) {
+    moveTo = await getRootID(accountID)
+  }
+
+  let remainingProps = this._modifiedProps.slice()
+  remainingProps = arrayHelper.removeAll(remainingProps, 'parent_id')
+  remainingProps = arrayHelper.removeAll(remainingProps, 'account_id')
+
   let data = {}
-  this._modifiedProps.forEach(prop => {
+  remainingProps.forEach(prop => {
     data[prop] = this.props[prop]
   })
-  return db('category').update(data).where('id', this.id)
-  .then(updated => {
+
+  return db.transaction(trx => {
+    return (
+      Object.keys(data).length > 0 ?
+        trx('category').update(data).where('id', this.id) :
+        Promise.resolve()
+    )
+    .then(() =>
+      moveTo !== null ?
+        trx.raw('CALL category_move(?, ?)', [this.id, moveTo])
+        .then(updatedIDs => updatedIDs[0][0][0])
+        .then(ids => {
+          this.props.account_id = ids.account_id
+          this.props.parent_id = ids.parent_id
+        }) :
+        Promise.resolve()
+    )
+  })
+  .then(allDone => {
     this._modifiedProps = []
     return this
   })
@@ -122,8 +164,7 @@ module.exports = class Category {
   }
   set parent(newParent) {
     let isCategory = newParent instanceof Category && newParent.id !== undefined
-    let isNull = newParent === null
-    let isValidNewParent = isCategory || isNull
+    let isValidNewParent = isCategory
     if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
 
     this.props.parent_id = newParent != null ? newParent.id : null

@@ -215,4 +215,10 @@ BEGIN
 
   /* Update target node parent */
   UPDATE category SET parent_id = in_parent_id WHERE id = in_node_id;
+
+  /* Return final IDs */
+  SELECT
+    in_node_id as id,
+    in_parent_id as parent_id,
+    n_parent_account_id as account_id;
 END;
