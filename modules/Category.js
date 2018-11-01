@@ -198,6 +198,14 @@ module.exports = class Category {
       updateRecord.bind(this)()
   }
 
+  async delete(removeChildren = false) {
+    let db = require('../lib/db')()
+    await db.raw(
+      'CALL category_delete(?, ?)',
+      [this.id, removeChildren]
+    )
+  }
+
   static async fetch(id) {
     let objectData = await fetchRecords({ id }, 1)
     if (objectData.length == 0) {

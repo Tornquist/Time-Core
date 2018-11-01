@@ -290,6 +290,82 @@ describe('Category Module', () => {
     })
   })
 
+  describe('Deleting categories', () => {
+    let categoryA;
+    let categoryB;
+    let categoryC;
+    let categoryD;
+    let categoryE;
+
+    before(async () => {
+      //  A
+      //  -- E
+      //  B
+      //  -- C
+      //  -- D
+
+      categoryA = new Time.Category({
+        name: "A",
+        account_id: accountTree.account.id
+      })
+      await categoryA.save()
+
+      categoryB = new Time.Category({
+        name: "B",
+        account_id: accountTree.account.id
+      })
+      await categoryB.save()
+
+      categoryC = new Time.Category({
+        name: "C",
+        parent_id: categoryB.id
+      })
+      await categoryC.save()
+
+      categoryD = new Time.Category({
+        name: "D",
+        parent_id: categoryB.id
+      })
+      await categoryD.save()
+
+      categoryE = new Time.Category({
+        name: "E",
+        parent_id: categoryA.id
+      })
+      await categoryE.save()
+    })
+
+    it('allows children to be deleted', async () => {
+      await categoryA.delete(true)
+
+      await Time.Category.fetch(categoryA.id)
+        .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+      await Time.Category.fetch(categoryE.id)
+        .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+
+    it('allows children to be moved up to the parent\'s level', async () => {
+      let parentID = categoryB.props.parent_id
+
+      await categoryB.delete(false)
+
+      await Time.Category.fetch(categoryB.id)
+        .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+
+      let freshC = await Time.Category.fetch(categoryC.id)
+      let freshD = await Time.Category.fetch(categoryD.id)
+
+      freshC.props.parent_id.should.eq(parentID)
+      freshD.props.parent_id.should.eq(parentID)
+    })
+
+    it('allows leaf nodes to be deleted', async () => {
+      await categoryC.delete()
+      await Time.Category.fetch(categoryC.id)
+        .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+  })
+
   after(async () => {
     await AccountHelper.cleanupTree(accountTree)
     await AccountHelper.cleanupTree(secondAccountTree)
