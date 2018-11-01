@@ -1,40 +1,119 @@
 'use strict'
 
 let TimeError = require("./TimeError")
+const arrayHelper = require('../helpers/array')
 
-function insertRecord() {
+function getRootID(accountID) {
+  let db = require('../lib/db')()
+  return db.select('id')
+  .from('category')
+  .whereNull('parent_id')
+  .andWhere('account_id', accountID)
+  .then(results => (results[0] || {}).id)
+}
+
+function getAccountID(parentID) {
+  let db = require('../lib/db')()
+  return db.select('account_id')
+  .from('category')
+  .where('id', parentID)
+  .then(results => (results[0] || {}).account_id)
+}
+
+async function insertRecord() {
   let db = require('../lib/db')()
 
-  return (
-    this.props.parent_id == null ?
-      (db.select('id')
-        .from('category')
-        .whereNull('parent_id')
-        .andWhere('account_id', this.props.account_id)) :
-      Promise.resolve([{ id: this.props.parent_id }])
-  )
-  .then(results => results[0].id)
-  .then(parentID =>
-    db.raw(
-      'CALL category_add(?, ?, ?)',
-      [this.props.account_id, parentID, this.name]
-    )
+  let parentSet = this.props.parent_id !== undefined
+  let accountSet = this.props.account_id !== undefined
+
+  let parentID = this.props.parent_id
+  let accountID = this.props.account_id
+
+  if (parentSet && accountSet) {
+    // No action: Auto validated in category_add
+  } else if (parentSet) {
+    accountID = await getAccountID(parentID)
+    if (accountID === undefined) { throw TimeError.Data.NOT_FOUND }
+  } else if (accountSet) {
+    parentID = await getRootID(accountID)
+    if (parentID === undefined) { throw TimeError.Data.NOT_FOUND }
+  } else {
+    throw TimeError.Category.INSUFFICIENT_PARENT_OR_ACCOUNT
+  }
+
+  return db.raw(
+    'CALL category_add(?, ?, ?)',
+    [accountID, parentID, this.name]
   )
   .then(results => results[0][0][0].id)
   .then(newID => {
     this.id = newID
+
+    this.props.account_id = accountID
+    this.props.parent_id = parentID
+    this._modifiedProps = []
+
     return this
+  })
+  .catch(err => {
+    let consistencyMessage = 'Category with requested parent_id and account_id not found'
+    let isInconsistent = err.message.includes(consistencyMessage)
+    if (isInconsistent) {
+      throw TimeError.Category.INCONSISTENT_PARENT_AND_ACCOUNT
+    }
+    throw err
   })
 }
 
-function updateRecord() {
+async function updateRecord() {
   let db = require('../lib/db')()
+
+  let parentSet = this._modifiedProps.includes('parent_id')
+  let accountSet = this._modifiedProps.includes('account_id')
+
+  let parentID = this.props.parent_id
+  let accountID = this.props.account_id
+
+  let moveTo = null;
+  if (parentSet && accountSet) {
+    let targetAccountID = await getAccountID(parentID)
+    if (targetAccountID !== accountID) {
+      throw TimeError.Category.INCONSISTENT_PARENT_AND_ACCOUNT
+    }
+    moveTo = parentID
+  } else if (parentSet) {
+    moveTo = parentID
+  } else if (accountSet) {
+    moveTo = await getRootID(accountID)
+  }
+
+  let remainingProps = this._modifiedProps.slice()
+  remainingProps = arrayHelper.removeAll(remainingProps, 'parent_id')
+  remainingProps = arrayHelper.removeAll(remainingProps, 'account_id')
+
   let data = {}
-  this._modifiedProps.forEach(prop => {
+  remainingProps.forEach(prop => {
     data[prop] = this.props[prop]
   })
-  return db('category').update(data).where('id', this.id)
-  .then(updated => {
+
+  return db.transaction(trx => {
+    return (
+      Object.keys(data).length > 0 ?
+        trx('category').update(data).where('id', this.id) :
+        Promise.resolve()
+    )
+    .then(() =>
+      moveTo !== null ?
+        trx.raw('CALL category_move(?, ?)', [this.id, moveTo])
+        .then(updatedIDs => updatedIDs[0][0][0])
+        .then(ids => {
+          this.props.account_id = ids.account_id
+          this.props.parent_id = ids.parent_id
+        }) :
+        Promise.resolve()
+    )
+  })
+  .then(allDone => {
     this._modifiedProps = []
     return this
   })
@@ -87,11 +166,10 @@ module.exports = class Category {
   }
   set parent(newParent) {
     let isCategory = newParent instanceof Category && newParent.id !== undefined
-    let isNull = newParent === null
-    let isValidNewParent = isCategory || isNull
+    let isValidNewParent = isCategory
     if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
 
-    this.props.parent_id = newParent != null ? newParent.id : null
+    this.props.parent_id = newParent.id
     this._modifiedProps.push('parent_id')
   }
 
@@ -120,6 +198,14 @@ module.exports = class Category {
     return neverSaved ?
       insertRecord.bind(this)() :
       updateRecord.bind(this)()
+  }
+
+  async delete(removeChildren = false) {
+    let db = require('../lib/db')()
+    await db.raw(
+      'CALL category_delete(?, ?)',
+      [this.id, removeChildren]
+    )
   }
 
   static async fetch(id) {
