@@ -33,8 +33,10 @@ async function insertRecord() {
     // No action: Auto validated in category_add
   } else if (parentSet) {
     accountID = await getAccountID(parentID)
+    if (accountID === undefined) { throw TimeError.Data.NOT_FOUND }
   } else if (accountSet) {
     parentID = await getRootID(accountID)
+    if (parentID === undefined) { throw TimeError.Data.NOT_FOUND }
   } else {
     throw TimeError.Category.INSUFFICIENT_PARENT_OR_ACCOUNT
   }
@@ -167,7 +169,7 @@ module.exports = class Category {
     let isValidNewParent = isCategory
     if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
 
-    this.props.parent_id = newParent != null ? newParent.id : null
+    this.props.parent_id = newParent.id
     this._modifiedProps.push('parent_id')
   }
 

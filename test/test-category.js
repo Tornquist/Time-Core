@@ -52,6 +52,11 @@ describe('Category Module', () => {
       .then(() => done()).catch(done)
     })
 
+    it('can be saved again without issue', () => {
+      // Will short circuit and skip db
+      return category.save()
+    })
+
     it('will have a unique id', done => {
       category.id.should.be.a('number')
       newID = category.id
@@ -86,6 +91,27 @@ describe('Category Module', () => {
 
       return newCategory.save()
       .should.be.rejectedWith(Time.Error.Category.INCONSISTENT_PARENT_AND_ACCOUNT)
+    })
+
+    it('will be rejected with an invalid account', () => {
+      let newCategory = new Time.Category()
+      newCategory.name = 'Will throw'
+      newCategory.account = 100000
+
+      return newCategory.save()
+      .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+
+    it('will be rejected with an invalid parent', () => {
+      let newCategory = new Time.Category()
+      newCategory.name = 'Will throw'
+
+      // Invalid action, but validates error handling downstream
+      newCategory.props.parent_id = 10000
+      newCategory._modifiedProps.push('parent_id')
+
+      return newCategory.save()
+      .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
     })
   })
 
