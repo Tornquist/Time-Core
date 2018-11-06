@@ -1,0 +1,13 @@
+{
+  "src": {
+    "tagName": "v%s",
+    "commitMessage": "Release v%s",
+    "tagAnnotation": "Release v%s"
+  },
+  "github": {
+    "release": true
+  },
+  "npm": {
+    "publish": false
+  }
+}
