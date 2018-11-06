@@ -10,7 +10,10 @@
     "db-reset": "scripts/setup-db.sh",
     "db-up": "db-migrate up",
     "db-down": "db-migrate down",
-    "db-migrate": "db-migrate"
+    "db-migrate": "db-migrate",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major"
   },
   "repository": {
     "type": "git",
@@ -30,6 +33,7 @@
     "mocha": "^5.2.0",
     "mysql": "^2.16.0",
     "nyc": "^13.0.1",
+    "release-it": "^7.6.2",
     "uuid": "^3.3.2"
   },
   "dependencies": {
