@@ -89,10 +89,10 @@ async function fetchRecords(filters, limit = null) {
     .leftJoin('account_user', 'account_user.account_id', 'account.id')
 
     if (filters.id !== undefined) {
-      query = query.where('account_id', filters.id)
+      query = query.where('account.id', filters.id)
     } else if (filters.user_id !== undefined) {
       query = query.whereIn(
-        'account_id',
+        'account.id',
         db.select('account_id').from('account_user')
         .where('user_id', filters.user_id)
       )
@@ -114,7 +114,7 @@ async function fetchRecords(filters, limit = null) {
 
   let formattedData = data.map(entry => {
     let clone = Object.assign({}, entry)
-    clone.userIDs = clone.userIDs.split(',').map(id => +id)
+    clone.userIDs = (clone.userIDs || "").split(',').filter(x => !!x).map(id => +id)
     return clone
   })
 
