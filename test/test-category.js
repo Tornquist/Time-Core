@@ -155,6 +155,26 @@ describe('Category Module', () => {
         .catch(done)
       })
     })
+
+    describe('By account', () => {
+      let category;
+
+      before(async () => {
+        category = await Time.Category.fetch(newID)
+      })
+
+      it('allows allows all categories to be loaded with an id', async () => {
+        let categories = await Time.Category.findForAccount(category.account_id)
+
+        categories.length.should.eq(3)
+      })
+
+      it('allows allows all categories to be loaded with an object', async () => {
+        let categories = await Time.Category.findForAccount(accountTree.account)
+
+        categories.length.should.eq(3)
+      })
+    })
   })
 
   describe("Configuring sub-categories", () => {

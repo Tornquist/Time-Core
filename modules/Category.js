@@ -215,4 +215,11 @@ module.exports = class Category {
     }
     return new Category(objectData[0])
   }
+
+  static async findForAccount(account) {
+    let id = typeof account === "number" ? account : account.id
+    let objectData = await fetchRecords({ account_id: id })
+
+    return objectData.map(categoryData => new Category(categoryData))
+  }
 }
