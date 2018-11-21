@@ -169,7 +169,13 @@ module.exports = class Category {
     let isValidNewParent = isCategory
     if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
 
-    this.props.parent_id = newParent.id
+    this.parent_id = newParent
+  }
+
+  get parent_id() { return this.props.parent_id }
+  set parent_id(newParent) {
+    let id = (typeof newParent === "number") ? newParent : newParent.id
+    this.props.parent_id = id
     this._modifiedProps.push('parent_id')
   }
 
@@ -214,5 +220,12 @@ module.exports = class Category {
       return Promise.reject(TimeError.Data.NOT_FOUND)
     }
     return new Category(objectData[0])
+  }
+
+  static async findForAccount(account) {
+    let id = typeof account === "number" ? account : account.id
+    let objectData = await fetchRecords({ account_id: id })
+
+    return objectData.map(categoryData => new Category(categoryData))
   }
 }
