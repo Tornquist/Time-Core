@@ -123,6 +123,8 @@ async function fetchRecords(filters, limit = null) {
 
 module.exports = class Account {
 
+  get userIDs() { return this.props.userIDs }
+
   constructor(data = {})  {
     this._addedUsers = []
     this._removedUsers = []

@@ -70,7 +70,7 @@ describe('Category Module', () => {
       .andWhere('account_id', category.account_id)
       .then(results => (results[0] || {}).id)
 
-      category.props.parent_id.should.eq(accountRootNode)
+      category.parent_id.should.eq(accountRootNode)
     })
 
     it('can be created with parent and no account', async () => {
@@ -106,9 +106,7 @@ describe('Category Module', () => {
       let newCategory = new Time.Category()
       newCategory.name = 'Will throw'
 
-      // Invalid action, but validates error handling downstream
-      newCategory.props.parent_id = 10000
-      newCategory._modifiedProps.push('parent_id')
+      newCategory.parent_id = 10000
 
       return newCategory.save()
       .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
@@ -217,7 +215,7 @@ describe('Category Module', () => {
 
     it("allows saving and will return the parent object", async () => {
       await child.save()
-      child.props.parent_id.should.eq(parent.id)
+      child.parent_id.should.eq(parent.id)
     })
 
     it("allows retrieval of the parent object", async () => {
@@ -275,7 +273,7 @@ describe('Category Module', () => {
       await categoryA.save()
 
       let fresh = await Time.Category.fetch(categoryA.id)
-      categoryA.props.parent_id.should.eq(categoryB.id)
+      categoryA.parent_id.should.eq(categoryB.id)
     })
 
     it('Allows moving between accounts with account alone', async () => {
@@ -295,18 +293,18 @@ describe('Category Module', () => {
 
       // B points to second account root (same as D)
       // Original object will be updated as well
-      categoryB.props.parent_id.should.eq(categoryD.id)
+      categoryB.parent_id.should.eq(categoryD.id)
       categoryB.account_id.should.eq(categoryD.account_id)
 
-      freshB.props.parent_id.should.eq(categoryD.id)
+      freshB.parent_id.should.eq(categoryD.id)
       freshB.account_id.should.eq(categoryD.account_id)
 
       // Children come with. Fresh objects have correct values
-      freshA.props.parent_id.should.eq(categoryB.id)
+      freshA.parent_id.should.eq(categoryB.id)
       freshA.account_id.should.eq(categoryD.account_id)
 
       // Old objects will be out of date
-      categoryA.props.parent_id.should.eq(categoryB.id)
+      categoryA.parent_id.should.eq(categoryB.id)
       categoryA.account_id.should.not.eq(categoryD.account_id)
 
       // Update records for other tests
@@ -321,11 +319,11 @@ describe('Category Module', () => {
 
       let fresh = await Time.Category.fetch(categoryC.id)
 
-      categoryC.props.parent_id.should.eq(categoryD.id)
-      fresh.props.parent_id.should.eq(categoryD.id)
+      categoryC.parent_id.should.eq(categoryD.id)
+      fresh.parent_id.should.eq(categoryD.id)
 
-      categoryC.account_id.should.eq(categoryD.props.account_id)
-      fresh.account_id.should.eq(categoryD.props.account_id)
+      categoryC.account_id.should.eq(categoryD.account_id)
+      fresh.account_id.should.eq(categoryD.account_id)
     })
 
     it('Denies moving between accounts with parent and account when they are inconsistent', () => {
@@ -391,7 +389,7 @@ describe('Category Module', () => {
     })
 
     it('allows children to be moved up to the parent\'s level', async () => {
-      let parentID = categoryB.props.parent_id
+      let parentID = categoryB.parent_id
 
       await categoryB.delete(false)
 
@@ -401,8 +399,8 @@ describe('Category Module', () => {
       let freshC = await Time.Category.fetch(categoryC.id)
       let freshD = await Time.Category.fetch(categoryD.id)
 
-      freshC.props.parent_id.should.eq(parentID)
-      freshD.props.parent_id.should.eq(parentID)
+      freshC.parent_id.should.eq(parentID)
+      freshD.parent_id.should.eq(parentID)
     })
 
     it('allows leaf nodes to be deleted', async () => {

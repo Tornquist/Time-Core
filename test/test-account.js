@@ -39,8 +39,8 @@ describe('Account Module', () => {
     it('allows registering of a user', () => {
       account.register(user1)
 
-      account.props.userIDs.length.should.eq(1)
-      account.props.userIDs.includes(user1.id).should.eq(true)
+      account.userIDs.length.should.eq(1)
+      account.userIDs.includes(user1.id).should.eq(true)
     })
 
     it('allows saving after a user has been registered', async () => {
@@ -63,7 +63,7 @@ describe('Account Module', () => {
         account._addedUsers.length.should.eq(0)
         account._removedUsers.length.should.eq(1)
         account._removedUsers.includes(user1.id)
-        account.props.userIDs.length.should.eq(0)
+        account.userIDs.length.should.eq(0)
       })
 
       it('can safely unregister a user a second time', () => {
@@ -72,7 +72,7 @@ describe('Account Module', () => {
         account._addedUsers.length.should.eq(0)
         account._removedUsers.length.should.eq(1)
         account._removedUsers.includes(user1.id)
-        account.props.userIDs.length.should.eq(0)
+        account.userIDs.length.should.eq(0)
       })
 
       it('rejects saving when no users are registered', () => {
@@ -88,7 +88,7 @@ describe('Account Module', () => {
         account._addedUsers.includes(user2.id)
         account._addedUsers.length.should.eq(1)
         account._removedUsers.length.should.eq(1)
-        account.props.userIDs.length.should.eq(1)
+        account.userIDs.length.should.eq(1)
       })
 
       it('has no action when registering a user again ', () => {
@@ -97,7 +97,7 @@ describe('Account Module', () => {
         account._addedUsers.includes(user2.id)
         account._addedUsers.length.should.eq(1)
         account._removedUsers.length.should.eq(1)
-        account.props.userIDs.length.should.eq(1)
+        account.userIDs.length.should.eq(1)
       })
 
       it('allows saving with one user', async () => {
@@ -105,7 +105,7 @@ describe('Account Module', () => {
 
         account._addedUsers.length.should.eq(0)
         account._removedUsers.length.should.eq(0)
-        account.props.userIDs.length.should.eq(1)
+        account.userIDs.length.should.eq(1)
       })
 
       it('allows registering additional users', () => {
@@ -114,7 +114,7 @@ describe('Account Module', () => {
         account._addedUsers.includes(user1.id)
         account._addedUsers.length.should.eq(1)
         account._removedUsers.length.should.eq(0)
-        account.props.userIDs.length.should.eq(2)
+        account.userIDs.length.should.eq(2)
       })
 
       it('allows saving with multiple users', async () => {
@@ -122,7 +122,7 @@ describe('Account Module', () => {
 
         account._addedUsers.length.should.eq(0)
         account._removedUsers.length.should.eq(0)
-        account.props.userIDs.length.should.eq(2)
+        account.userIDs.length.should.eq(2)
       })
     })
 
@@ -183,14 +183,14 @@ describe('Account Module', () => {
     it('loads all registered users regardless of fetch type', () => {
       fetchedAccounts.forEach(fetchedAccount => {
         if (fetchedAccount.id === account.id) {
-          fetchedAccount.props.userIDs.length.should.eq(2)
-          fetchedAccount.props.userIDs.includes(user1.id).should.eq(true)
-          fetchedAccount.props.userIDs.includes(user2.id).should.eq(true)
+          fetchedAccount.userIDs.length.should.eq(2)
+          fetchedAccount.userIDs.includes(user1.id).should.eq(true)
+          fetchedAccount.userIDs.includes(user2.id).should.eq(true)
 
         } else if (fetchedAccount.id === secondAccount.id) {
-          fetchedAccount.props.userIDs.length.should.eq(1)
-          fetchedAccount.props.userIDs.includes(user1.id).should.eq(true)
-          fetchedAccount.props.userIDs.includes(user2.id).should.eq(false)
+          fetchedAccount.userIDs.length.should.eq(1)
+          fetchedAccount.userIDs.includes(user1.id).should.eq(true)
+          fetchedAccount.userIDs.includes(user2.id).should.eq(false)
 
         } else {
           throw new Error("Unknown account")
