@@ -175,6 +175,11 @@ module.exports = class Entry {
       updateRecord.bind(this)()
   }
 
+  async delete() {
+    let db = require('../lib/db')()
+    await db('entry').where('id', this.id).del()
+  }
+
   static async fetch(id) {
     let objectData = await fetchRecords({ id }, 1)
     if (objectData.length == 0) {

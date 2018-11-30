@@ -208,7 +208,32 @@ describe('Entry Module', () => {
     })
   })
 
-  describe('Finding events', () => {
+  describe('Deleting entries', () => {
+    let e;
+    before(async () => {
+      e = new Time.Entry()
+      e.category = category
+      e.type = Time.Type.Entry.EVENT
+      await e.save()
+    })
+
+    it('can be loaded', async () => {
+      let fresh = await Time.Entry.fetch(e.id)
+      fresh.id.should.eq(e.id)
+      fresh.type.should.eq(Time.Type.Entry.EVENT)
+    })
+
+    it('can be deleted', async () => {
+      await e.delete()
+    })
+
+    it('cannot be loaded after it is deleted', () => {
+      return Time.Entry.fetch(e.id)
+      .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+  })
+
+  describe('Finding entries', () => {
     let searchCategory;
     let entryA;
     let entryB;
@@ -275,7 +300,7 @@ describe('Entry Module', () => {
       })
     })
 
-    describe('Starting and stopping events', () => {
+    describe('Starting and stopping entries', () => {
       let entry;
       it('will allow an entry to be started', async () => {
         entry = await Time.Entry.startFor(category)
