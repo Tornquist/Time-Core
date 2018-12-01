@@ -64,6 +64,7 @@ describe('Entry Module', () => {
       e.type = Time.Type.Entry.EVENT
       await e.save()
       e.id.should.be.a('number')
+      e.category_id.should.eq(category.id)
     })
   })
 
