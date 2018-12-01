@@ -71,6 +71,22 @@ async function fetchRecords(filters, limit = null) {
     delete filters.type
   }
 
+  let accountFilter = null;
+  if (filters.account_id !== undefined || filters.account_ids !== undefined) {
+    accountFilter = [filters.account_id].concat(filters.account_ids || []).filter(x => !!x)
+    accountFilter = accountFilter.length > 0 ? accountFilter : null
+    delete filters.account_id
+    delete filters.account_ids
+  }
+
+  let categoryFilter = null;
+  if (filters.category_id !== undefined || filters.category_ids !== undefined) {
+    categoryFilter = [filters.category_id].concat(filters.category_ids || []).filter(x => !!x)
+    categoryFilter = categoryFilter.length > 0 ? categoryFilter : null
+    delete filters.category_id
+    delete filters.category_ids
+  }
+
   let data;
   try {
     let query = db.select(
@@ -81,11 +97,21 @@ async function fetchRecords(filters, limit = null) {
       'ended_at'
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
-    .where(filters)
 
-    if (limit !== null) {
-      query = query.limit(+limit)
+    if (accountFilter !== null) {
+      query = query.leftJoin('category', 'category.id', 'entry.category_id')
+                   .leftJoin('account', 'account.id', 'category.account_id')
     }
+
+    if (Object.keys(filters).length > 0)
+      query = query.where(filters)
+    if (accountFilter !== null)
+      query = query.whereIn('account.id', accountFilter)
+    if (categoryFilter !== null)
+      query = query.whereIn('entry.category_id', categoryFilter)
+
+    if (limit !== null)
+      query = query.limit(+limit)
 
     data = await query
   } catch (error) {
@@ -96,6 +122,9 @@ async function fetchRecords(filters, limit = null) {
 }
 
 module.exports = class Entry {
+  get category_id() {
+    return this.props.category_id
+  }
   set category(newCategory) {
     this._modifiedProps.push("category_id")
     let category_id = typeof newCategory === "object" ? newCategory.id : newCategory
@@ -192,6 +221,18 @@ module.exports = class Entry {
     if (search.category) {
       search.category_id = search.category.id
       delete search.category
+    }
+    if (search.categories) {
+      search.category_ids = search.categories.map(c => c.id)
+      delete search.categories
+    }
+    if (search.account) {
+      search.account_id = search.account.id
+      delete search.account
+    }
+    if (search.accounts) {
+      search.account_ids = search.accounts.map(a => a.id)
+      delete search.accounts
     }
 
     let records = await fetchRecords(search)

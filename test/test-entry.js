@@ -234,24 +234,44 @@ describe('Entry Module', () => {
   })
 
   describe('Finding entries', () => {
-    let searchCategory;
-    let entryA;
-    let entryB;
+    let aATree, aBTree;
+    let aA, aB;
+    let cA, cB, cC, cD;
+    let eA, eB, eC, eD, eE, eF, eG, eH;
+
     before(async() => {
-      searchCategory = new Time.Category()
-      searchCategory.name = "Search Category"
-      searchCategory.account = accountTree.account
-      await searchCategory.save()
+      aATree = (await AccountHelper.createTree())
+      aBTree = (await AccountHelper.createTree())
 
-      entryA = new Time.Entry()
-      entryA.category = searchCategory
-      entryA.type = Time.Type.Entry.EVENT
-      await entryA.save()
+      aA = aATree.account
+      aB = aBTree.account
 
-      entryB = new Time.Entry()
-      entryB.category = searchCategory
-      entryB.type = Time.Type.Entry.RANGE
-      await entryB.save()
+      cA = new Time.Category()
+      cA.name = "A"; cA.account = aA; await cA.save()
+      cB = new Time.Category()
+      cB.name = "B"; cB.account = aA; await cB.save()
+      cC = new Time.Category()
+      cC.name = "C"; cC.account = aB; await cC.save()
+      cD = new Time.Category()
+      cD.name = "D"; cD.account = aB; await cD.save()
+
+      eA = new Time.Entry()
+      eA.category = cA; eA.type = Time.Type.Entry.EVENT; await eA.save()
+      eB = new Time.Entry()
+      eB.category = cB; eB.type = Time.Type.Entry.EVENT; await eB.save()
+      eC = new Time.Entry()
+      eC.category = cC; eC.type = Time.Type.Entry.EVENT; await eC.save()
+      eD = new Time.Entry()
+      eD.category = cD; eD.type = Time.Type.Entry.EVENT; await eD.save()
+
+      eE = new Time.Entry()
+      eE.category = cA; eE.type = Time.Type.Entry.RANGE; await eE.save()
+      eF = new Time.Entry()
+      eF.category = cB; eF.type = Time.Type.Entry.RANGE; await eF.save()
+      eG = new Time.Entry()
+      eG.category = cC; eG.type = Time.Type.Entry.RANGE; await eG.save()
+      eH = new Time.Entry()
+      eH.category = cD; eH.type = Time.Type.Entry.RANGE; await eH.save()
     })
 
     it('returns an empty array when none exist', async () => {
@@ -259,29 +279,137 @@ describe('Entry Module', () => {
       results.length.should.eq(0)
     })
 
-    it('returns all events when searching by category', async () => {
-      let results = await Time.Entry.findFor({ category: searchCategory })
-      results.length.should.eq(2)
+    describe('By category', () => {
+      it('returns all events when searching by category object', async () => {
+        let results = await Time.Entry.findFor({ category: cA })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eE.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by category array', async () => {
+        let results = await Time.Entry.findFor({ categories: [cA, cB] })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eE.id, eF.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by category id', async () => {
+        let results = await Time.Entry.findFor({ category_id: cC.id })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eC.id, eG.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by category ids', async () => {
+        let results = await Time.Entry.findFor({ category_ids: [cA.id, cD.id] })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eE.id, eD.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
     })
 
-    describe('with type', () => {
+    describe('By account', () => {
+      it('returns all events when searching by account object', async () => {
+        let results = await Time.Entry.findFor({ account: aA })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eE.id, eF.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by account array', async () => {
+        let results = await Time.Entry.findFor({ accounts: [aA, aB] })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eE.id, eF.id,
+                           eC.id, eD.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by account id', async () => {
+        let results = await Time.Entry.findFor({ account_id: aB.id })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eC.id, eD.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns all events when searching by account ids', async () => {
+        let results = await Time.Entry.findFor({ account_ids: [aA.id, aB.id] })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eE.id, eF.id,
+                           eC.id, eD.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+    })
+
+    describe('By type', () => {
+      // Type must be limited by account. Otherwise a ton of old test
+      // data will be returned as well. It's too open-ended
       it('returns the correct event entries', async () => {
         let results = await Time.Entry.findFor({
-          category: searchCategory,
+          accounts: [aA, aB],
           type: Time.Type.Entry.EVENT
         })
-        results.length.should.eq(1)
-        results[0].id.should.eq(entryA.id)
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eC.id, eD.id]
+        resultIDs.should.have.same.members(expectedIDs)
       })
 
       it('returns the correct range entries', async () => {
         let results = await Time.Entry.findFor({
-          category: searchCategory,
+          accounts: [aA, aB],
           type: Time.Type.Entry.RANGE
         })
-        results.length.should.eq(1)
-        results[0].id.should.eq(entryB.id)
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eE.id, eF.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
       })
+    })
+
+    describe('Grouping filters', () => {
+      it('succeeds with category and account', async () => {
+        let results = await Time.Entry.findFor({ account: aA, category: cB })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eB.id, eF.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('succeeds with account and type', async () => {
+        let results = await Time.Entry.findFor({
+          account: aA,
+          type: Time.Type.Entry.RANGE
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eE.id, eF.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('succeeds with category and type', async () => {
+        let results = await Time.Entry.findFor({
+          category: cA,
+          type: Time.Type.Entry.EVENT
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+    })
+
+    after(async () => {
+      await AccountHelper.cleanupTree(aATree)
+      await AccountHelper.cleanupTree(aBTree)
     })
   })
 
