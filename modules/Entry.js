@@ -74,7 +74,6 @@ async function fetchRecords(filters, limit = null) {
   let accountFilter = null;
   if (filters.account_id !== undefined || filters.account_ids !== undefined) {
     accountFilter = [filters.account_id].concat(filters.account_ids || []).filter(x => !!x)
-    accountFilter = accountFilter.length > 0 ? accountFilter : null
     delete filters.account_id
     delete filters.account_ids
   }
@@ -82,7 +81,6 @@ async function fetchRecords(filters, limit = null) {
   let categoryFilter = null;
   if (filters.category_id !== undefined || filters.category_ids !== undefined) {
     categoryFilter = [filters.category_id].concat(filters.category_ids || []).filter(x => !!x)
-    categoryFilter = categoryFilter.length > 0 ? categoryFilter : null
     delete filters.category_id
     delete filters.category_ids
   }
