@@ -257,22 +257,30 @@ describe('Entry Module', () => {
       cD.name = "D"; cD.account = aB; await cD.save()
 
       eA = new Time.Entry()
-      eA.category = cA; eA.type = Time.Type.Entry.EVENT; await eA.save()
+      eA.category = cA; eA.type = Time.Type.Entry.EVENT
+      eA.startedAt = '2018-01-01 01:01:01'; await eA.save()
       eB = new Time.Entry()
-      eB.category = cB; eB.type = Time.Type.Entry.EVENT; await eB.save()
+      eB.category = cB; eB.type = Time.Type.Entry.EVENT
+      eB.startedAt = '2018-01-02 01:01:01'; await eB.save()
       eC = new Time.Entry()
-      eC.category = cC; eC.type = Time.Type.Entry.EVENT; await eC.save()
+      eC.category = cC; eC.type = Time.Type.Entry.EVENT
+      eC.startedAt = '2018-01-03 01:01:01'; await eC.save()
       eD = new Time.Entry()
-      eD.category = cD; eD.type = Time.Type.Entry.EVENT; await eD.save()
+      eD.category = cD; eD.type = Time.Type.Entry.EVENT
+      eD.startedAt = '2018-01-04 01:01:01'; await eD.save()
 
       eE = new Time.Entry()
-      eE.category = cA; eE.type = Time.Type.Entry.RANGE; await eE.save()
+      eE.category = cA; eE.type = Time.Type.Entry.RANGE
+      eE.startedAt = '2018-01-05 01:01:01'; await eE.save()
       eF = new Time.Entry()
-      eF.category = cB; eF.type = Time.Type.Entry.RANGE; await eF.save()
+      eF.category = cB; eF.type = Time.Type.Entry.RANGE
+      eF.startedAt = '2018-01-06 01:01:01'; await eF.save()
       eG = new Time.Entry()
-      eG.category = cC; eG.type = Time.Type.Entry.RANGE; await eG.save()
+      eG.category = cC; eG.type = Time.Type.Entry.RANGE
+      eG.startedAt = '2018-01-07 01:01:01'; await eG.save()
       eH = new Time.Entry()
-      eH.category = cD; eH.type = Time.Type.Entry.RANGE; await eH.save()
+      eH.category = cD; eH.type = Time.Type.Entry.RANGE
+      eH.startedAt = '2018-01-08 01:01:01'; await eH.save()
     })
 
     it('returns an empty array when none exist', async () => {
@@ -372,6 +380,45 @@ describe('Entry Module', () => {
 
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eE.id, eF.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+    })
+
+    describe('By date', () => {
+      // Date must be limited by account. Otherwise a ton of old test
+      // data will be returned as well. It's too open-ended
+
+      it('allows greater than', async () => {
+        let results = await Time.Entry.findFor({
+          accounts: [aA, aB],
+          date_gt: '2018-01-03 12:00:00'
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eD.id, eE.id, eF.id, eG.id, eH.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('allows less than', async () => {
+        let results = await Time.Entry.findFor({
+          accounts: [aA, aB],
+          date_lt: '2018-01-03 12:00:00'
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eC.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('allows greater than and less than', async () => {
+        let results = await Time.Entry.findFor({
+          accounts: [aA, aB],
+          date_gt: '2018-01-02 12:00:00',
+          date_lt: '2018-01-06 12:00:00'
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eC.id, eD.id, eE.id, eF.id]
         resultIDs.should.have.same.members(expectedIDs)
       })
     })

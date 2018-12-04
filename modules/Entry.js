@@ -1,7 +1,7 @@
 'use strict'
 
-const TimeError = require("./TimeError")
-const Type = require("./Type")
+const TimeError = require('./TimeError')
+const Type = require('./Type')
 
 const dateHelper = require('../helpers/date')
 const arrayHelper = require('../helpers/array')
@@ -85,6 +85,18 @@ async function fetchRecords(filters, limit = null) {
     delete filters.category_ids
   }
 
+  let greaterThanFilter = null;
+  if (filters.date_gt !== undefined) {
+    greaterThanFilter = dateHelper.toDb(filters.date_gt)
+    delete filters.date_gt
+  }
+
+  let lessThanFilter = null;
+  if (filters.date_lt !== undefined) {
+    lessThanFilter = dateHelper.toDb(filters.date_lt)
+    delete filters.date_lt
+  }
+
   let data;
   try {
     let query = db.select(
@@ -107,6 +119,10 @@ async function fetchRecords(filters, limit = null) {
       query = query.whereIn('account.id', accountFilter)
     if (categoryFilter !== null)
       query = query.whereIn('entry.category_id', categoryFilter)
+    if (greaterThanFilter !== null)
+      query = query.where('started_at', '>', greaterThanFilter)
+    if (lessThanFilter !== null)
+      query = query.where('started_at', '<', lessThanFilter)
 
     if (limit !== null)
       query = query.limit(+limit)
