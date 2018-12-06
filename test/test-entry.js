@@ -64,7 +64,7 @@ describe('Entry Module', () => {
       e.type = Time.Type.Entry.EVENT
       await e.save()
       e.id.should.be.a('number')
-      e.category_id.should.eq(category.id)
+      e.categoryID.should.eq(category.id)
     })
   })
 
@@ -284,7 +284,7 @@ describe('Entry Module', () => {
     })
 
     it('returns an empty array when none exist', async () => {
-      let results = await Time.Entry.findFor({ category_id: -1 })
+      let results = await Time.Entry.findFor({ categoryID: -1 })
       results.length.should.eq(0)
     })
 
@@ -306,7 +306,7 @@ describe('Entry Module', () => {
       })
 
       it('returns all events when searching by category id', async () => {
-        let results = await Time.Entry.findFor({ category_id: cC.id })
+        let results = await Time.Entry.findFor({ categoryID: cC.id })
 
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eC.id, eG.id]
@@ -314,7 +314,7 @@ describe('Entry Module', () => {
       })
 
       it('returns all events when searching by category ids', async () => {
-        let results = await Time.Entry.findFor({ category_ids: [cA.id, cD.id] })
+        let results = await Time.Entry.findFor({ categoryIDs: [cA.id, cD.id] })
 
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eA.id, eE.id, eD.id, eH.id]
@@ -341,7 +341,7 @@ describe('Entry Module', () => {
       })
 
       it('returns all events when searching by account id', async () => {
-        let results = await Time.Entry.findFor({ account_id: aB.id })
+        let results = await Time.Entry.findFor({ accountID: aB.id })
 
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eC.id, eD.id, eG.id, eH.id]
@@ -349,7 +349,7 @@ describe('Entry Module', () => {
       })
 
       it('returns all events when searching by account ids', async () => {
-        let results = await Time.Entry.findFor({ account_ids: [aA.id, aB.id] })
+        let results = await Time.Entry.findFor({ accountIDs: [aA.id, aB.id] })
 
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eA.id, eB.id, eE.id, eF.id,

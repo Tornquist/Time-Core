@@ -136,7 +136,7 @@ async function fetchRecords(filters, limit = null) {
 }
 
 module.exports = class Entry {
-  get category_id() {
+  get categoryID() {
     return this.props.category_id
   }
   set category(newCategory) {
@@ -192,7 +192,7 @@ module.exports = class Entry {
     this.props = {
       type: data.type,
 
-      category_id: data.category_id,
+      category_id: data.category_id || data.categoryID,
 
       started_at: data.started_at,
       ended_at: data.ended_at
@@ -232,22 +232,25 @@ module.exports = class Entry {
   }
 
   static async findFor(search) {
-    if (search.category) {
-      search.category_id = search.category.id
+    if (search.category || search.categories) {
+      let categories = [search.category].concat(search.categories || []).filter(x => !!x)
+      search.category_ids = categories.map(c => c.id)
       delete search.category
-    }
-    if (search.categories) {
-      search.category_ids = search.categories.map(c => c.id)
       delete search.categories
     }
-    if (search.account) {
-      search.account_id = search.account.id
+    if (search.account || search.accounts) {
+      let accounts = [search.account].concat(search.accounts || []).filter(x => !!x)
+      search.account_ids = accounts.map(c => c.id)
       delete search.account
-    }
-    if (search.accounts) {
-      search.account_ids = search.accounts.map(a => a.id)
       delete search.accounts
     }
+
+    Object.keys(search).forEach(key => {
+      if (key.endsWith('ID') || key.endsWith('IDs')) {
+        search[key.replace('ID', '_id')] = search[key]
+        delete search[key]
+      }
+    })
 
     let records = await fetchRecords(search)
     return records.map(record => new Entry(record))
