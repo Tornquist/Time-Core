@@ -1,7 +1,7 @@
 'use strict'
 
-const TimeError = require("./TimeError")
-const Type = require("./Type")
+const TimeError = require('./TimeError')
+const Type = require('./Type')
 
 const dateHelper = require('../helpers/date')
 const arrayHelper = require('../helpers/array')
@@ -71,6 +71,32 @@ async function fetchRecords(filters, limit = null) {
     delete filters.type
   }
 
+  let accountFilter = null;
+  if (filters.account_id !== undefined || filters.account_ids !== undefined) {
+    accountFilter = [filters.account_id].concat(filters.account_ids || []).filter(x => !!x)
+    delete filters.account_id
+    delete filters.account_ids
+  }
+
+  let categoryFilter = null;
+  if (filters.category_id !== undefined || filters.category_ids !== undefined) {
+    categoryFilter = [filters.category_id].concat(filters.category_ids || []).filter(x => !!x)
+    delete filters.category_id
+    delete filters.category_ids
+  }
+
+  let greaterThanFilter = null;
+  if (filters.after !== undefined) {
+    greaterThanFilter = dateHelper.toDb(filters.after)
+    delete filters.after
+  }
+
+  let lessThanFilter = null;
+  if (filters.before !== undefined) {
+    lessThanFilter = dateHelper.toDb(filters.before)
+    delete filters.before
+  }
+
   let data;
   try {
     let query = db.select(
@@ -81,11 +107,25 @@ async function fetchRecords(filters, limit = null) {
       'ended_at'
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
-    .where(filters)
 
-    if (limit !== null) {
-      query = query.limit(+limit)
+    if (accountFilter !== null) {
+      query = query.leftJoin('category', 'category.id', 'entry.category_id')
+                   .leftJoin('account', 'account.id', 'category.account_id')
     }
+
+    if (Object.keys(filters).length > 0)
+      query = query.where(filters)
+    if (accountFilter !== null)
+      query = query.whereIn('account.id', accountFilter)
+    if (categoryFilter !== null)
+      query = query.whereIn('entry.category_id', categoryFilter)
+    if (greaterThanFilter !== null)
+      query = query.where('started_at', '>', greaterThanFilter)
+    if (lessThanFilter !== null)
+      query = query.where('started_at', '<', lessThanFilter)
+
+    if (limit !== null)
+      query = query.limit(+limit)
 
     data = await query
   } catch (error) {
@@ -96,6 +136,9 @@ async function fetchRecords(filters, limit = null) {
 }
 
 module.exports = class Entry {
+  get categoryID() {
+    return this.props.category_id
+  }
   set category(newCategory) {
     this._modifiedProps.push("category_id")
     let category_id = typeof newCategory === "object" ? newCategory.id : newCategory
@@ -149,7 +192,7 @@ module.exports = class Entry {
     this.props = {
       type: data.type,
 
-      category_id: data.category_id,
+      category_id: data.category_id || data.categoryID,
 
       started_at: data.started_at,
       ended_at: data.ended_at
@@ -175,6 +218,11 @@ module.exports = class Entry {
       updateRecord.bind(this)()
   }
 
+  async delete() {
+    let db = require('../lib/db')()
+    await db('entry').where('id', this.id).del()
+  }
+
   static async fetch(id) {
     let objectData = await fetchRecords({ id }, 1)
     if (objectData.length == 0) {
@@ -184,10 +232,25 @@ module.exports = class Entry {
   }
 
   static async findFor(search) {
-    if (search.category) {
-      search.category_id = search.category.id
+    if (search.category || search.categories) {
+      let categories = [search.category].concat(search.categories || []).filter(x => !!x)
+      search.category_ids = categories.map(c => c.id)
       delete search.category
+      delete search.categories
     }
+    if (search.account || search.accounts) {
+      let accounts = [search.account].concat(search.accounts || []).filter(x => !!x)
+      search.account_ids = accounts.map(c => c.id)
+      delete search.account
+      delete search.accounts
+    }
+
+    Object.keys(search).forEach(key => {
+      if (key.endsWith('ID') || key.endsWith('IDs')) {
+        search[key.replace('ID', '_id')] = search[key]
+        delete search[key]
+      }
+    })
 
     let records = await fetchRecords(search)
     return records.map(record => new Entry(record))

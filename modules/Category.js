@@ -150,7 +150,7 @@ module.exports = class Category {
     this.props.name = newName
   }
 
-  get account_id() { return this.props.account_id }
+  get accountID() { return this.props.account_id }
   set account(newAccount) {
     this._modifiedProps.push("account_id")
     let id = (typeof newAccount === "number") ? newAccount : newAccount.id
@@ -169,11 +169,11 @@ module.exports = class Category {
     let isValidNewParent = isCategory
     if (!isValidNewParent) throw TimeError.Request.INVALID_TYPE
 
-    this.parent_id = newParent
+    this.parentID = newParent
   }
 
-  get parent_id() { return this.props.parent_id }
-  set parent_id(newParent) {
+  get parentID() { return this.props.parent_id }
+  set parentID(newParent) {
     let id = (typeof newParent === "number") ? newParent : newParent.id
     this.props.parent_id = id
     this._modifiedProps.push('parent_id')
@@ -189,9 +189,9 @@ module.exports = class Category {
 
     this.id = data.id
     this.props = {
-      parent_id: data.parent_id,
+      parent_id: data.parent_id || data.parentID,
       name: data.name,
-      account_id: data.account_id
+      account_id: data.account_id || data.accountID
     }
   }
 

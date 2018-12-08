@@ -67,10 +67,10 @@ describe('Category Module', () => {
       let accountRootNode = await Time._db.select('id')
       .from('category')
       .whereNull('parent_id')
-      .andWhere('account_id', category.account_id)
+      .andWhere('account_id', category.accountID)
       .then(results => (results[0] || {}).id)
 
-      category.parent_id.should.eq(accountRootNode)
+      category.parentID.should.eq(accountRootNode)
     })
 
     it('can be created with parent and no account', async () => {
@@ -80,7 +80,7 @@ describe('Category Module', () => {
 
       await newCategory.save()
 
-      newCategory.account_id.should.eq(category.account_id)
+      newCategory.accountID.should.eq(category.accountID)
     })
 
     it('will be rejected if category and parent are mismatched', () => {
@@ -106,7 +106,7 @@ describe('Category Module', () => {
       let newCategory = new Time.Category()
       newCategory.name = 'Will throw'
 
-      newCategory.parent_id = 10000
+      newCategory.parentID = 10000
 
       return newCategory.save()
       .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
@@ -130,7 +130,7 @@ describe('Category Module', () => {
 
       it('will load with the expected values', done => {
         category.name.should.eq(startingName)
-        category.account_id.should.eq(accountTree.account.id)
+        category.accountID.should.eq(accountTree.account.id)
         done()
       })
 
@@ -162,7 +162,7 @@ describe('Category Module', () => {
       })
 
       it('allows allows all categories to be loaded with an id', async () => {
-        let categories = await Time.Category.findForAccount(category.account_id)
+        let categories = await Time.Category.findForAccount(category.accountID)
 
         categories.length.should.eq(3)
       })
@@ -215,7 +215,7 @@ describe('Category Module', () => {
 
     it("allows saving and will return the parent object", async () => {
       await child.save()
-      child.parent_id.should.eq(parent.id)
+      child.parentID.should.eq(parent.id)
     })
 
     it("allows retrieval of the parent object", async () => {
@@ -248,22 +248,22 @@ describe('Category Module', () => {
     before(async () => {
       categoryA = new Time.Category({
         name: "A",
-        account_id: accountTree.account.id
+        accountID: accountTree.account.id
       })
       await categoryA.save()
       categoryB = new Time.Category({
         name: "B",
-        account_id: accountTree.account.id
+        accountID: accountTree.account.id
       })
       await categoryB.save()
       categoryC = new Time.Category({
         name: "C",
-        account_id: secondAccountTree.account.id
+        accountID: secondAccountTree.account.id
       })
       await categoryC.save()
       categoryD = new Time.Category({
         name: "D",
-        account_id: secondAccountTree.account.id
+        accountID: secondAccountTree.account.id
       })
       await categoryD.save()
     })
@@ -273,15 +273,15 @@ describe('Category Module', () => {
       await categoryA.save()
 
       let fresh = await Time.Category.fetch(categoryA.id)
-      categoryA.parent_id.should.eq(categoryB.id)
+      categoryA.parentID.should.eq(categoryB.id)
     })
 
     it('Allows moving between accounts with account alone', async () => {
-      categoryC.account = categoryA.account_id
+      categoryC.account = categoryA.accountID
       await categoryC.save()
 
       let fresh = await Time.Category.fetch(categoryC.id)
-      categoryC.account_id.should.eq(categoryA.account_id)
+      categoryC.accountID.should.eq(categoryA.accountID)
     })
 
     it('Allows moving between accounts with parent alone', async () => {
@@ -293,19 +293,19 @@ describe('Category Module', () => {
 
       // B points to second account root (same as D)
       // Original object will be updated as well
-      categoryB.parent_id.should.eq(categoryD.id)
-      categoryB.account_id.should.eq(categoryD.account_id)
+      categoryB.parentID.should.eq(categoryD.id)
+      categoryB.accountID.should.eq(categoryD.accountID)
 
-      freshB.parent_id.should.eq(categoryD.id)
-      freshB.account_id.should.eq(categoryD.account_id)
+      freshB.parentID.should.eq(categoryD.id)
+      freshB.accountID.should.eq(categoryD.accountID)
 
       // Children come with. Fresh objects have correct values
-      freshA.parent_id.should.eq(categoryB.id)
-      freshA.account_id.should.eq(categoryD.account_id)
+      freshA.parentID.should.eq(categoryB.id)
+      freshA.accountID.should.eq(categoryD.accountID)
 
       // Old objects will be out of date
-      categoryA.parent_id.should.eq(categoryB.id)
-      categoryA.account_id.should.not.eq(categoryD.account_id)
+      categoryA.parentID.should.eq(categoryB.id)
+      categoryA.accountID.should.not.eq(categoryD.accountID)
 
       // Update records for other tests
       categoryA = freshA
@@ -314,16 +314,16 @@ describe('Category Module', () => {
 
     it('Allows moving between accounts with parent and account when they match', async () => {
       categoryC.parent = categoryD
-      categoryC.account = categoryB.account_id
+      categoryC.account = categoryB.accountID
       await categoryC.save()
 
       let fresh = await Time.Category.fetch(categoryC.id)
 
-      categoryC.parent_id.should.eq(categoryD.id)
-      fresh.parent_id.should.eq(categoryD.id)
+      categoryC.parentID.should.eq(categoryD.id)
+      fresh.parentID.should.eq(categoryD.id)
 
-      categoryC.account_id.should.eq(categoryD.account_id)
-      fresh.account_id.should.eq(categoryD.account_id)
+      categoryC.accountID.should.eq(categoryD.accountID)
+      fresh.accountID.should.eq(categoryD.accountID)
     })
 
     it('Denies moving between accounts with parent and account when they are inconsistent', () => {
@@ -350,31 +350,31 @@ describe('Category Module', () => {
 
       categoryA = new Time.Category({
         name: "A",
-        account_id: accountTree.account.id
+        accountID: accountTree.account.id
       })
       await categoryA.save()
 
       categoryB = new Time.Category({
         name: "B",
-        account_id: accountTree.account.id
+        accountID: accountTree.account.id
       })
       await categoryB.save()
 
       categoryC = new Time.Category({
         name: "C",
-        parent_id: categoryB.id
+        parentID: categoryB.id
       })
       await categoryC.save()
 
       categoryD = new Time.Category({
         name: "D",
-        parent_id: categoryB.id
+        parentID: categoryB.id
       })
       await categoryD.save()
 
       categoryE = new Time.Category({
         name: "E",
-        parent_id: categoryA.id
+        parentID: categoryA.id
       })
       await categoryE.save()
     })
@@ -389,7 +389,7 @@ describe('Category Module', () => {
     })
 
     it('allows children to be moved up to the parent\'s level', async () => {
-      let parentID = categoryB.parent_id
+      let parentID = categoryB.parentID
 
       await categoryB.delete(false)
 
@@ -399,8 +399,8 @@ describe('Category Module', () => {
       let freshC = await Time.Category.fetch(categoryC.id)
       let freshD = await Time.Category.fetch(categoryD.id)
 
-      freshC.parent_id.should.eq(parentID)
-      freshD.parent_id.should.eq(parentID)
+      freshC.parentID.should.eq(parentID)
+      freshD.parentID.should.eq(parentID)
     })
 
     it('allows leaf nodes to be deleted', async () => {
