@@ -391,7 +391,7 @@ describe('Entry Module', () => {
       it('allows greater than', async () => {
         let results = await Time.Entry.findFor({
           accounts: [aA, aB],
-          date_gt: '2018-01-03 12:00:00'
+          after: '2018-01-03 12:00:00'
         })
 
         let resultIDs = results.map(r => r.id)
@@ -402,7 +402,7 @@ describe('Entry Module', () => {
       it('allows less than', async () => {
         let results = await Time.Entry.findFor({
           accounts: [aA, aB],
-          date_lt: '2018-01-03 12:00:00'
+          before: '2018-01-03 12:00:00'
         })
 
         let resultIDs = results.map(r => r.id)
@@ -413,8 +413,8 @@ describe('Entry Module', () => {
       it('allows greater than and less than', async () => {
         let results = await Time.Entry.findFor({
           accounts: [aA, aB],
-          date_gt: '2018-01-02 12:00:00',
-          date_lt: '2018-01-06 12:00:00'
+          after: '2018-01-02 12:00:00',
+          before: '2018-01-06 12:00:00'
         })
 
         let resultIDs = results.map(r => r.id)

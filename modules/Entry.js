@@ -86,15 +86,15 @@ async function fetchRecords(filters, limit = null) {
   }
 
   let greaterThanFilter = null;
-  if (filters.date_gt !== undefined) {
-    greaterThanFilter = dateHelper.toDb(filters.date_gt)
-    delete filters.date_gt
+  if (filters.after !== undefined) {
+    greaterThanFilter = dateHelper.toDb(filters.after)
+    delete filters.after
   }
 
   let lessThanFilter = null;
-  if (filters.date_lt !== undefined) {
-    lessThanFilter = dateHelper.toDb(filters.date_lt)
-    delete filters.date_lt
+  if (filters.before !== undefined) {
+    lessThanFilter = dateHelper.toDb(filters.before)
+    delete filters.before
   }
 
   let data;
