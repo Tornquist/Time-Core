@@ -17,5 +17,8 @@ module.exports = {
       min: 2,
       max: 8
     }
+  },
+  token: {
+    salt: process.env.TOKEN_SALT
   }
 }

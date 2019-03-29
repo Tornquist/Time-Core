@@ -62,3 +62,6 @@ typings/
 
 # OSX Files
 .DS_Store
+
+# Ack
+.ackrc
