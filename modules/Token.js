@@ -106,7 +106,7 @@ module.exports = class Token {
     let newTokens = tokenHelper.getTokenPair()
 
     let shortAccess = cryptoHelper.shortHash(newTokens.access.token)
-    let hashedAccess = await cryptoHelper.hash(newTokens.access.token)
+    let hashedAccess = await cryptoHelper.hash(newTokens.access.token, true)
     let shortRefresh = cryptoHelper.shortHash(newTokens.refresh.token)
     let hashedRefresh = await cryptoHelper.hash(newTokens.refresh.token)
 
@@ -168,7 +168,8 @@ module.exports = class Token {
     }
 
     let tokenColumn = type + '_token_hash'
-    let valid = await cryptoHelper.verify(token, tokenObject.props[tokenColumn])
+    let lightVerification = type === Type.Token.ACCESS
+    let valid = await cryptoHelper.verify(token, tokenObject.props[tokenColumn], lightVerification)
 
     if (!valid) {
       throw TimeError.Authentication.TOKEN_INVALID
