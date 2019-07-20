@@ -98,17 +98,17 @@ describe('Entry Module', () => {
     })
 
     it('allows started_at to be changed', async () => {
-      let startDate = moment('2017-03-19')
+      let startDate = moment.utc('2017-03-19')
       entry.startedAt = startDate
       await entry.save()
 
       let freshEntry = await Time.Entry.fetch(entry.id)
-      moment(freshEntry.props.started_at).isSame(startDate).should.eq(true)
+      moment.utc(freshEntry.props.started_at).isSame(startDate).should.eq(true)
     })
 
     it('rejets ended_at for event entry', () => {
       try {
-        entry.endedAt = moment()
+        entry.endedAt = moment.utc()
       }
       catch (error) {
         error.should.eq(Time.Error.Request.INVALID_STATE)
@@ -123,12 +123,12 @@ describe('Entry Module', () => {
     })
 
     it('allows ended_at to be changed', async () => {
-      let endDate = moment('2018-04-20')
+      let endDate = moment.utc('2018-04-20')
       entry.endedAt = endDate
       await entry.save()
 
       let freshEntry = await Time.Entry.fetch(entry.id)
-      moment(freshEntry.props.ended_at).isSame(endDate).should.eq(true)
+      moment.utc(freshEntry.props.ended_at).isSame(endDate).should.eq(true)
     })
 
     it('clears ended_at when changing type from range to event', async () => {
