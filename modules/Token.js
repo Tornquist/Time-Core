@@ -110,10 +110,10 @@ module.exports = class Token {
     let shortRefresh = cryptoHelper.shortHash(newTokens.refresh.token)
     let hashedRefresh = await cryptoHelper.hash(newTokens.refresh.token)
 
-    let accessCreatedAt = moment(newTokens.access.creation).format("YYYY-MM-DD HH:mm:ss")
-    let accessExpiresAt = moment(newTokens.access.expiration).format("YYYY-MM-DD HH:mm:ss")
-    let refreshCreatedAt = moment(newTokens.refresh.creation).format("YYYY-MM-DD HH:mm:ss")
-    let refreshExpiresAt = moment(newTokens.refresh.expiration).format("YYYY-MM-DD HH:mm:ss")
+    let accessCreatedAt = moment.utc(newTokens.access.creation).format("YYYY-MM-DD HH:mm:ss")
+    let accessExpiresAt = moment.utc(newTokens.access.expiration).format("YYYY-MM-DD HH:mm:ss")
+    let refreshCreatedAt = moment.utc(newTokens.refresh.creation).format("YYYY-MM-DD HH:mm:ss")
+    let refreshExpiresAt = moment.utc(newTokens.refresh.expiration).format("YYYY-MM-DD HH:mm:ss")
 
     let data = {
       user_id: id,
@@ -161,8 +161,8 @@ module.exports = class Token {
 
     let inactive = !tokenObject.props.active
     let expirationColumn = type + '_expires_at'
-    let expirationDate = moment(tokenObject.props[expirationColumn])
-    let expired = moment().isAfter(expirationDate)
+    let expirationDate = moment.utc(tokenObject.props[expirationColumn])
+    let expired = moment.utc().isAfter(expirationDate)
     if (inactive || expired) {
       throw TimeError.Authentication.TOKEN_EXPIRED
     }
