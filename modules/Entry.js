@@ -6,6 +6,21 @@ const Type = require('./Type')
 const dateHelper = require('../helpers/date')
 const arrayHelper = require('../helpers/array')
 
+let timezoneStore = {}
+async function getTimezoneID(name) {
+  if (name === null) { return null }
+  if (timezoneStore[name] !== undefined) { return timezoneStore[name] }
+
+  let db = require('../lib/db')()
+  let timezoneRows = await db.raw(`
+    INSERT IGNORE INTO timezone SET name = ?;
+    SELECT id FROM timezone WHERE name = ?;
+  `, [name, name])
+
+  if (timezoneRows[0].length === 0) throw TimeError.Data.NOT_FOUND
+  return timezoneRows[0][0].id
+}
+
 function insertRecord() {
   let db = require('../lib/db')()
 
@@ -30,7 +45,7 @@ function insertRecord() {
   })
 }
 
-function updateRecord() {
+async function updateRecord() {
   let db = require('../lib/db')()
   let data = {}
 
@@ -44,9 +59,19 @@ function updateRecord() {
     this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'started_at')
   }
 
+  if (this._modifiedProps.includes('started_at_timezone')) {
+    data.started_at_timezone_id = await getTimezoneID(this.props.started_at_timezone)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'started_at_timezone')
+  }
+
   if (this._modifiedProps.includes('ended_at')) {
     data.ended_at = dateHelper.toDb(this.props.ended_at)
     this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'ended_at')
+  }
+
+  if (this._modifiedProps.includes('ended_at_timezone')) {
+    data.ended_at_timezone_id = await getTimezoneID(this.props.ended_at_timezone)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'ended_at_timezone')
   }
 
   this._modifiedProps.forEach(prop => {
@@ -104,9 +129,13 @@ async function fetchRecords(filters, limit = null) {
       'entry_type.name as type',
       'category_id',
       'started_at',
-      'ended_at'
+      'tz_start.name as started_at_timezone',
+      'ended_at',
+      'tz_end.name as started_at_timezone',
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
+    .leftJoin('timezone as tz_start', 'tz_start.id', 'entry.started_at_timezone_id')
+    .leftJoin('timezone as tz_end', 'tz_end.id', 'entry.ended_at_timezone_id')
 
     if (accountFilter !== null) {
       query = query.leftJoin('category', 'category.id', 'entry.category_id')
@@ -166,6 +195,18 @@ module.exports = class Entry {
 
     this.props.started_at = newStart
     this._modifiedProps.push("started_at")
+    if (newStart === null) this.startedAtTimezone = null
+  }
+
+  get startedAtTimezone() {
+    return this.props.started_at_timezone
+  }
+  set startedAtTimezone(newTimezone) {
+    if (this.startAt === null && newTimezone !== null)
+      throw TimeError.Request.INVALID_STATE
+
+    this.props.started_at_timezone = newTimezone
+    this._modifiedProps.push("started_at_timezone")
   }
 
   get endedAt() {
@@ -183,6 +224,18 @@ module.exports = class Entry {
 
     this.props.ended_at = newEnd
     this._modifiedProps.push("ended_at")
+    if (newEnd === null) this.endedAtTimezone = null
+  }
+
+  get endedAtTimezone() {
+    return this.props.ended_at_timezone
+  }
+  set endedAtTimezone(newTimezone) {
+    if (this.endedAt === null && newTimezone !== null)
+      throw TimeError.Request.INVALID_STATE
+
+    this.props.ended_at_timezone = newTimezone
+    this._modifiedProps.push("ended_at_timezone")
   }
 
   constructor(data = {}) {
