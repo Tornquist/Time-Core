@@ -21,7 +21,7 @@ async function getTimezoneID(name) {
   return timezoneRows[0][0].id
 }
 
-function insertRecord() {
+async function insertRecord() {
   let db = require('../lib/db')()
 
   if (
@@ -31,11 +31,16 @@ function insertRecord() {
 
   if (this.props.started_at === undefined) this.start()
 
+  let started_at_timezone_id = await getTimezoneID(this.props.started_at_timezone)
+  let ended_at_timezone_id = await getTimezoneID(this.props.ended_at_timezone)
+
   let data = {
     type_id: db.raw('(select id from entry_type where name = ?)', this.props.type),
     category_id: this.props.category_id,
     started_at: dateHelper.toDb(this.props.started_at),
-    ended_at: dateHelper.toDb(this.props.ended_at)
+    started_at_timezone_id: started_at_timezone_id,
+    ended_at: dateHelper.toDb(this.props.ended_at),
+    ended_at_timezone_id: ended_at_timezone_id
   }
   return db('entry').insert(data)
   .then(results => {
@@ -248,7 +253,9 @@ module.exports = class Entry {
       category_id: data.category_id || data.categoryID,
 
       started_at: data.started_at,
-      ended_at: data.ended_at
+      started_at_timezone: data.started_at_timezone || null,
+      ended_at: data.ended_at,
+      ended_at_timezone: data.ended_at_timezone || null
     }
   }
 

@@ -23,10 +23,10 @@ describe('Entry Module', () => {
   })
 
   describe('Creating a new entry', () => {
-    it('cannot be saved without type and category', () => {
+    it('cannot be saved without type and category', async () => {
       let e = new Time.Entry()
       try {
-        e.save()
+        await e.save()
       } catch (error) {
         error.should.eq(Time.Error.Request.INVALID_STATE)
         return
@@ -34,11 +34,11 @@ describe('Entry Module', () => {
       throw new Error("Expected failure")
     })
 
-    it('cannot be saved without category', () => {
+    it('cannot be saved without category', async () => {
       let e = new Time.Entry()
       e.type = Time.Type.Entry.EVENT
       try {
-        e.save()
+        await e.save()
       } catch (error) {
         error.should.eq(Time.Error.Request.INVALID_STATE)
         return
@@ -46,11 +46,11 @@ describe('Entry Module', () => {
       throw new Error("Expected failure")
     })
 
-    it('cannot be saved without type', () => {
+    it('cannot be saved without type', async () => {
       let e = new Time.Entry()
       e.category = category
       try {
-        e.save()
+        await e.save()
       } catch (error) {
         error.should.eq(Time.Error.Request.INVALID_STATE)
         return
