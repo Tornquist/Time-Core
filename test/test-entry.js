@@ -3,6 +3,7 @@ let chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 let should = chai.should();
 let moment = require('moment')
+let uuid = require('uuid/v4')
 
 const config = require('./setup/config')
 const Time = require(process.env.PWD)(config)
@@ -65,6 +66,20 @@ describe('Entry Module', () => {
       await e.save()
       e.id.should.be.a('number')
       e.categoryID.should.eq(category.id)
+      e.startedAt.should.be.a('date')
+      should.equal(e.startedAtTimezone, null)
+    })
+
+    it('can be saved with a type, category and timezone', async () => {
+      let e = new Time.Entry()
+      e.category = category
+      e.type = Time.Type.Entry.EVENT
+      e.startedAtTimezone = 'America/Chicago'
+      await e.save()
+      e.id.should.be.a('number')
+      e.categoryID.should.eq(category.id)
+      e.startedAt.should.be.a('date')
+      e.startedAtTimezone.should.eq('America/Chicago')
     })
   })
 
@@ -97,7 +112,7 @@ describe('Entry Module', () => {
       await entry.save()
     })
 
-    it('allows started_at to be changed', async () => {
+    it('allows startedAt to be changed', async () => {
       let startDate = moment.utc('2017-03-19')
       entry.startedAt = startDate
       await entry.save()
@@ -106,9 +121,29 @@ describe('Entry Module', () => {
       moment.utc(freshEntry.props.started_at).isSame(startDate).should.eq(true)
     })
 
-    it('rejets ended_at for event entry', () => {
+    it('allows startedAtTimezone to be changed', async () => {
+      should.equal(entry.startedAtTimezone, null)
+      entry.startedAtTimezone = 'America/Chicago'
+      await entry.save()
+
+      let freshEntry = await Time.Entry.fetch(entry.id)
+      entry.startedAtTimezone.should.eq('America/Chicago')
+    })
+
+    it('rejects endedAt for event entry', () => {
       try {
         entry.endedAt = moment.utc()
+      }
+      catch (error) {
+        error.should.eq(Time.Error.Request.INVALID_STATE)
+        return
+      }
+      throw new Error("Expected failure")
+    })
+
+    it('rejects endedAtTimezone for event entry', () => {
+      try {
+        entry.endedAtTimezone = 'America/New_York'
       }
       catch (error) {
         error.should.eq(Time.Error.Request.INVALID_STATE)
@@ -122,7 +157,7 @@ describe('Entry Module', () => {
       await entry.save()
     })
 
-    it('allows ended_at to be changed', async () => {
+    it('allows endedAt to be changed', async () => {
       let endDate = moment.utc('2018-04-20')
       entry.endedAt = endDate
       await entry.save()
@@ -131,11 +166,45 @@ describe('Entry Module', () => {
       moment.utc(freshEntry.props.ended_at).isSame(endDate).should.eq(true)
     })
 
-    it('clears ended_at when changing type from range to event', async () => {
+    it('allows endedAtTimezone to be set', async () => {
+      should.equal(entry.endedAtTimezone, null)
+      entry.endedAtTimezone = 'America/New_York'
+      await entry.save()
+
+      let freshEntry = await Time.Entry.fetch(entry.id)
+      entry.endedAtTimezone.should.eq('America/New_York')
+    })
+
+    it('allows endedAtTimezone to be changed', async () => {
+      should.equal(entry.endedAtTimezone, 'America/New_York')
+      entry.endedAtTimezone = 'America/Denver'
+      await entry.save()
+
+      let freshEntry = await Time.Entry.fetch(entry.id)
+      entry.endedAtTimezone.should.eq('America/Denver')
+    })
+
+    it('accepts user input for timezones: reference for clients', async () => {
+      // Required to validate cache misses
+      let fakeTimezone = uuid()
+      entry.endedAtTimezone = fakeTimezone
+      await entry.save()
+
+      let freshEntry = await Time.Entry.fetch(entry.id)
+      entry.endedAtTimezone.should.eq(fakeTimezone)
+    })
+
+    it('clears endedAt and endedAtTimezone when changing type from range to event', async () => {
+      should.not.equal(entry.endedAt, null)
+      should.not.equal(entry.endedAtTimezone, null)
+
       entry.type = Time.Type.Entry.EVENT
       await entry.save()
 
+      should.equal(entry.endedAt, null)
       should.equal(entry.props.ended_at, null)
+      should.equal(entry.endedAtTimezone, null)
+      should.equal(entry.props.ended_at_timezone, null)
     })
   })
 

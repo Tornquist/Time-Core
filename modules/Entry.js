@@ -12,13 +12,17 @@ async function getTimezoneID(name) {
   if (timezoneStore[name] !== undefined) { return timezoneStore[name] }
 
   let db = require('../lib/db')()
-  let timezoneRows = await db.raw(`
-    INSERT IGNORE INTO timezone SET name = ?;
-    SELECT id FROM timezone WHERE name = ?;
-  `, [name, name])
+  let match = await db('timezone').select('id').where('name', name)
+  if (match.length === 1) {
+    let id = match[0].id
+    timezoneStore[name] = id
+    return id
+  }
 
-  if (timezoneRows[0].length === 0) throw TimeError.Data.NOT_FOUND
-  return timezoneRows[0][0].id
+  let newID = await db('timezone').insert({ name })
+  if (newID.length !== 1) throw TimeError.Data.NOT_FOUND
+  timezoneStore[name] = newID[0]
+  return newID[0]
 }
 
 async function insertRecord() {
@@ -207,25 +211,26 @@ module.exports = class Entry {
     return this.props.started_at_timezone
   }
   set startedAtTimezone(newTimezone) {
-    if (this.startAt === null && newTimezone !== null)
-      throw TimeError.Request.INVALID_STATE
-
     this.props.started_at_timezone = newTimezone
     this._modifiedProps.push("started_at_timezone")
   }
 
-  get endedAt() {
-    return dateHelper.fromDb(this.props.ended_at)
-  }
-  set endedAt(newEnd) {
-    if (
+  get canSetEndedAt() {
+    return (!(
       this.type === undefined ||
       this.type === Type.Entry.EVENT ||
       (
         this.type === Type.Entry.RANGE &&
         this.props.started_at === undefined
       )
-    ) throw TimeError.Request.INVALID_STATE
+    ))
+  }
+
+  get endedAt() {
+    return dateHelper.fromDb(this.props.ended_at)
+  }
+  set endedAt(newEnd) {
+    if (!this.canSetEndedAt) throw TimeError.Request.INVALID_STATE
 
     this.props.ended_at = newEnd
     this._modifiedProps.push("ended_at")
@@ -236,8 +241,7 @@ module.exports = class Entry {
     return this.props.ended_at_timezone
   }
   set endedAtTimezone(newTimezone) {
-    if (this.endedAt === null && newTimezone !== null)
-      throw TimeError.Request.INVALID_STATE
+    if (!this.canSetEndedAt) throw TimeError.Request.INVALID_STATE
 
     this.props.ended_at_timezone = newTimezone
     this._modifiedProps.push("ended_at_timezone")
