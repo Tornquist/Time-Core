@@ -140,7 +140,7 @@ async function fetchRecords(filters, limit = null) {
       'started_at',
       'tz_start.name as started_at_timezone',
       'ended_at',
-      'tz_end.name as started_at_timezone',
+      'tz_end.name as ended_at_timezone',
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
     .leftJoin('timezone as tz_start', 'tz_start.id', 'entry.started_at_timezone_id')
@@ -263,12 +263,14 @@ module.exports = class Entry {
     }
   }
 
-  start() {
+  start(timezone = null) {
     this.startedAt = Date.now()
+    if (timezone) this.startedAtTimezone = timezone
   }
 
-  stop() {
+  stop(timezone = null) {
     this.endedAt = Date.now()
+    if (timezone) this.endedAtTimezone = timezone
   }
 
   save() {
@@ -320,7 +322,7 @@ module.exports = class Entry {
     return records.map(record => new Entry(record))
   }
 
-  static async startFor(category) {
+  static async startFor(category, timezone = null) {
     let matches = await Entry.findFor({
       category: category,
       type: Type.Entry.RANGE,
@@ -333,12 +335,13 @@ module.exports = class Entry {
     entry.type = Type.Entry.RANGE
     entry.category = category
     entry.start()
+    if (timezone) entry.startedAtTimezone = timezone
     await entry.save()
 
     return entry
   }
 
-  static async stopFor(category) {
+  static async stopFor(category, timezone = null) {
     let matches = await Entry.findFor({
       category: category,
       type: Type.Entry.RANGE,
@@ -349,15 +352,17 @@ module.exports = class Entry {
 
     let entry = matches[0]
     entry.stop()
+    if (timezone) entry.endedAtTimezone = timezone
     await entry.save()
 
     return entry
   }
 
-  static async logFor(category) {
+  static async logFor(category, timezone = null) {
     let entry = new Entry()
     entry.type = Type.Entry.EVENT
     entry.category = category
+    if (timezone) entry.startedAtTimezone = timezone
     await entry.save()
 
     return entry

@@ -276,6 +276,17 @@ describe('Entry Module', () => {
       e.start()
       e.stop()
     })
+
+    it('allows start and stop to be called with timezone information', () => {
+      let e = new Time.Entry()
+      e.category = category
+      e.type = Time.Type.Entry.RANGE
+      e.start('America/Chicago')
+      e.startedAtTimezone.should.eq('America/Chicago')
+
+      e.stop('America/New_York')
+      e.endedAtTimezone.should.eq('America/New_York')
+    })
   })
 
   describe('Deleting entries', () => {
@@ -533,7 +544,7 @@ describe('Entry Module', () => {
   describe('Helper methods (for category)', () => {
     describe('Logging events', () => {
       let entry;
-      it('will success and return an Entry', async () => {
+      it('will succeed and return an Entry', async () => {
         entry = await Time.Entry.logFor(category)
         entry.constructor.name.should.eq('Entry')
       })
@@ -541,6 +552,17 @@ describe('Entry Module', () => {
       it('will have the expected properties', () => {
         entry.type.should.eq(Time.Type.Entry.EVENT)
         entry.startedAt.should.be.a('date')
+        should.equal(entry.startedAtTimezone, null)
+        should.equal(entry.endedAt, null)
+      })
+
+      it('allows timezone to be included', async () => {
+        let entry = await Time.Entry.logFor(category, 'America/Chicago')
+        entry.constructor.name.should.eq('Entry')
+
+        entry.type.should.eq(Time.Type.Entry.EVENT)
+        entry.startedAt.should.be.a('date')
+        entry.startedAtTimezone.should.eq('America/Chicago')
         should.equal(entry.endedAt, null)
       })
     })
@@ -581,6 +603,22 @@ describe('Entry Module', () => {
           return
         }
         throw new Error("Expected rejection")
+      })
+
+      it('allows timezone to be included when starting and stopping', async () => {
+        let entryA = await Time.Entry.startFor(category, 'America/Chicago')
+        entryA.constructor.name.should.eq('Entry')
+        entryA.type.should.eq(Time.Type.Entry.RANGE)
+        entryA.startedAtTimezone.should.eq('America/Chicago')
+        should.equal(entryA.endedAtTimezone, null)
+
+        let entryB = await Time.Entry.stopFor(category, 'America/Indiana/Indianapolis')
+        entryB.constructor.name.should.eq('Entry')
+        entryB.type.should.eq(Time.Type.Entry.RANGE)
+        entryB.startedAtTimezone.should.eq('America/Chicago')
+        entryB.endedAtTimezone.should.eq('America/Indiana/Indianapolis')
+
+        entryA.id.should.eq(entryB.id)
       })
     })
   })
