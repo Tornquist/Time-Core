@@ -32,7 +32,7 @@
     "db-migrate-mysql": "^1.1.10",
     "mocha": "^5.2.0",
     "nyc": "^13.0.1",
-    "release-it": "^7.6.2",
+    "release-it": "^12.3.4",
     "uuid": "^3.3.2"
   },
   "dependencies": {
