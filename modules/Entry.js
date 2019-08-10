@@ -6,7 +6,26 @@ const Type = require('./Type')
 const dateHelper = require('../helpers/date')
 const arrayHelper = require('../helpers/array')
 
-function insertRecord() {
+let timezoneStore = {}
+async function getTimezoneID(name) {
+  if (name === null) { return null }
+  if (timezoneStore[name] !== undefined) { return timezoneStore[name] }
+
+  let db = require('../lib/db')()
+  let match = await db('timezone').select('id').where('name', name)
+  if (match.length === 1) {
+    let id = match[0].id
+    timezoneStore[name] = id
+    return id
+  }
+
+  let newID = await db('timezone').insert({ name })
+  if (newID.length !== 1) throw TimeError.Data.NOT_FOUND
+  timezoneStore[name] = newID[0]
+  return newID[0]
+}
+
+async function insertRecord() {
   let db = require('../lib/db')()
 
   if (
@@ -14,13 +33,20 @@ function insertRecord() {
     this.props.type === undefined
   ) throw TimeError.Request.INVALID_STATE
 
-  if (this.props.started_at === undefined) this.start()
+  if (this.props.started_at === undefined || this.props.started_at === null) {
+    this.start()
+  }
+
+  let started_at_timezone_id = await getTimezoneID(this.props.started_at_timezone)
+  let ended_at_timezone_id = await getTimezoneID(this.props.ended_at_timezone)
 
   let data = {
     type_id: db.raw('(select id from entry_type where name = ?)', this.props.type),
     category_id: this.props.category_id,
     started_at: dateHelper.toDb(this.props.started_at),
-    ended_at: dateHelper.toDb(this.props.ended_at)
+    started_at_timezone_id: started_at_timezone_id,
+    ended_at: dateHelper.toDb(this.props.ended_at),
+    ended_at_timezone_id: ended_at_timezone_id
   }
   return db('entry').insert(data)
   .then(results => {
@@ -30,7 +56,7 @@ function insertRecord() {
   })
 }
 
-function updateRecord() {
+async function updateRecord() {
   let db = require('../lib/db')()
   let data = {}
 
@@ -44,9 +70,19 @@ function updateRecord() {
     this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'started_at')
   }
 
+  if (this._modifiedProps.includes('started_at_timezone')) {
+    data.started_at_timezone_id = await getTimezoneID(this.props.started_at_timezone)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'started_at_timezone')
+  }
+
   if (this._modifiedProps.includes('ended_at')) {
     data.ended_at = dateHelper.toDb(this.props.ended_at)
     this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'ended_at')
+  }
+
+  if (this._modifiedProps.includes('ended_at_timezone')) {
+    data.ended_at_timezone_id = await getTimezoneID(this.props.ended_at_timezone)
+    this._modifiedProps = arrayHelper.removeAll(this._modifiedProps, 'ended_at_timezone')
   }
 
   this._modifiedProps.forEach(prop => {
@@ -104,9 +140,13 @@ async function fetchRecords(filters, limit = null) {
       'entry_type.name as type',
       'category_id',
       'started_at',
-      'ended_at'
+      'tz_start.name as started_at_timezone',
+      'ended_at',
+      'tz_end.name as ended_at_timezone',
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
+    .leftJoin('timezone as tz_start', 'tz_start.id', 'entry.started_at_timezone_id')
+    .leftJoin('timezone as tz_end', 'tz_end.id', 'entry.ended_at_timezone_id')
 
     if (accountFilter !== null) {
       query = query.leftJoin('category', 'category.id', 'entry.category_id')
@@ -163,26 +203,58 @@ module.exports = class Entry {
   }
   set startedAt(newStart) {
     if (this.type === undefined) throw TimeError.Request.INVALID_STATE
+    if (
+      (newStart === null || newStart === undefined) ||
+      (this.props.ended_at && dateHelper.isAfter(newStart, this.props.ended_at))
+    ) {
+      throw TimeError.Request.INVALID_VALUE
+    }
 
     this.props.started_at = newStart
     this._modifiedProps.push("started_at")
   }
 
-  get endedAt() {
-    return dateHelper.fromDb(this.props.ended_at)
+  get startedAtTimezone() {
+    return this.props.started_at_timezone
   }
-  set endedAt(newEnd) {
-    if (
+  set startedAtTimezone(newTimezone) {
+    this.props.started_at_timezone = newTimezone
+    this._modifiedProps.push("started_at_timezone")
+  }
+
+  get canSetEndedAt() {
+    return (!(
       this.type === undefined ||
       this.type === Type.Entry.EVENT ||
       (
         this.type === Type.Entry.RANGE &&
         this.props.started_at === undefined
       )
-    ) throw TimeError.Request.INVALID_STATE
+    ))
+  }
+
+  get endedAt() {
+    return dateHelper.fromDb(this.props.ended_at)
+  }
+  set endedAt(newEnd) {
+    if (!this.canSetEndedAt) throw TimeError.Request.INVALID_STATE
+    if (dateHelper.isBefore(newEnd, this.props.started_at)) {
+      throw TimeError.Request.INVALID_VALUE
+    }
 
     this.props.ended_at = newEnd
     this._modifiedProps.push("ended_at")
+    if (newEnd === null) this.endedAtTimezone = null
+  }
+
+  get endedAtTimezone() {
+    return this.props.ended_at_timezone
+  }
+  set endedAtTimezone(newTimezone) {
+    if (!this.canSetEndedAt) throw TimeError.Request.INVALID_STATE
+
+    this.props.ended_at_timezone = newTimezone
+    this._modifiedProps.push("ended_at_timezone")
   }
 
   constructor(data = {}) {
@@ -195,16 +267,20 @@ module.exports = class Entry {
       category_id: data.category_id || data.categoryID,
 
       started_at: data.started_at,
-      ended_at: data.ended_at
+      started_at_timezone: data.started_at_timezone || null,
+      ended_at: data.ended_at,
+      ended_at_timezone: data.ended_at_timezone || null
     }
   }
 
-  start() {
+  start(timezone = null) {
     this.startedAt = Date.now()
+    if (timezone) this.startedAtTimezone = timezone
   }
 
-  stop() {
+  stop(timezone = null) {
     this.endedAt = Date.now()
+    if (timezone) this.endedAtTimezone = timezone
   }
 
   save() {
@@ -256,7 +332,7 @@ module.exports = class Entry {
     return records.map(record => new Entry(record))
   }
 
-  static async startFor(category) {
+  static async startFor(category, timezone = null) {
     let matches = await Entry.findFor({
       category: category,
       type: Type.Entry.RANGE,
@@ -269,12 +345,13 @@ module.exports = class Entry {
     entry.type = Type.Entry.RANGE
     entry.category = category
     entry.start()
+    if (timezone) entry.startedAtTimezone = timezone
     await entry.save()
 
     return entry
   }
 
-  static async stopFor(category) {
+  static async stopFor(category, timezone = null) {
     let matches = await Entry.findFor({
       category: category,
       type: Type.Entry.RANGE,
@@ -285,15 +362,17 @@ module.exports = class Entry {
 
     let entry = matches[0]
     entry.stop()
+    if (timezone) entry.endedAtTimezone = timezone
     await entry.save()
 
     return entry
   }
 
-  static async logFor(category) {
+  static async logFor(category, timezone = null) {
     let entry = new Entry()
     entry.type = Type.Entry.EVENT
     entry.category = category
+    if (timezone) entry.startedAtTimezone = timezone
     await entry.save()
 
     return entry
