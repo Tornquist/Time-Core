@@ -201,6 +201,9 @@ module.exports = class Entry {
   }
   set startedAt(newStart) {
     if (this.type === undefined) throw TimeError.Request.INVALID_STATE
+    if (this.props.ended_at && dateHelper.isAfter(newStart, this.props.ended_at)) {
+      throw TimeError.Request.INVALID_VALUE
+    }
 
     this.props.started_at = newStart
     this._modifiedProps.push("started_at")
@@ -231,6 +234,9 @@ module.exports = class Entry {
   }
   set endedAt(newEnd) {
     if (!this.canSetEndedAt) throw TimeError.Request.INVALID_STATE
+    if (dateHelper.isBefore(newEnd, this.props.started_at)) {
+      throw TimeError.Request.INVALID_VALUE
+    }
 
     this.props.ended_at = newEnd
     this._modifiedProps.push("ended_at")

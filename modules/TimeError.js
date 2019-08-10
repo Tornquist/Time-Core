@@ -7,6 +7,7 @@ const INCORRECT_FORMAT = new Error("Provided data did not match expected format"
 const INVALID_TYPE = new Error("Action not permitted for type")
 const INVALID_STATE = new Error("Action is not currently allowed")
 const INVALID_ACTION = new Error("Action is unavailable")
+const INVALID_VALUE = new Error("Value provided for action is not allowed")
 
 // Authentication Errors
 const INVALID_PASSWORD = new Error("Password did not match")
@@ -27,7 +28,8 @@ module.exports = {
   Request: {
     INVALID_TYPE,
     INVALID_STATE,
-    INVALID_ACTION
+    INVALID_ACTION,
+    INVALID_VALUE
   },
   Authentication: {
     INVALID_PASSWORD,

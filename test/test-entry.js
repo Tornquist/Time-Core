@@ -184,6 +184,32 @@ describe('Entry Module', () => {
       entry.endedAtTimezone.should.eq('America/Denver')
     })
 
+    it('rejects changing startedAt to values after endedAt', async () => {
+      let ended = moment(entry.endedAt)
+      let newStart = ended.add(1, 'second')
+
+      try {
+        entry.startedAt = newStart
+      } catch(e) {
+        e.should.eq(Time.Error.Request.INVALID_VALUE)
+        return
+      }
+      throw new Error("Expected failure")
+    })
+
+    it('rejects changing endedAt to values before startedAt', async () => {
+      let started = moment(entry.startedAt)
+      let newEnd = started.subtract(1, 'second')
+
+      try {
+        entry.endedAt = newEnd
+      } catch(e) {
+        e.should.eq(Time.Error.Request.INVALID_VALUE)
+        return
+      }
+      throw new Error("Expected failure")
+    })
+
     it('accepts user input for timezones: reference for clients', async () => {
       // Required to validate cache misses
       let fakeTimezone = uuid()
