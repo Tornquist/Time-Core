@@ -21,6 +21,13 @@ describe('Entry Module', () => {
     category.account = accountTree.account
     category.name = "Entry test category"
     await category.save()
+
+    // Pre-seed timezone for full coverage of loading and caching timezones when
+    // running tests on a fresh database
+    let existingTimezone = await Time._db('timezone').select('id').where('name', 'America/Chicago')
+    if (existingTimezone.length === 0) {
+      await Time._db('timezone').insert({ name: 'America/Chicago' })
+    }
   })
 
   describe('Creating a new entry', () => {
