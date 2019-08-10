@@ -128,6 +128,16 @@ describe('Entry Module', () => {
       moment.utc(freshEntry.props.started_at).isSame(startDate).should.eq(true)
     })
 
+    it('rejects clearing startedAt', async () => {
+      try {
+        entry.startedAt = null
+      } catch (e) {
+        e.should.eq(Time.Error.Request.INVALID_VALUE)
+        return
+      }
+      throw new Error('Expected failure')
+    })
+
     it('allows startedAtTimezone to be changed', async () => {
       should.equal(entry.startedAtTimezone, null)
       entry.startedAtTimezone = 'America/Chicago'
@@ -227,7 +237,21 @@ describe('Entry Module', () => {
       entry.endedAtTimezone.should.eq(fakeTimezone)
     })
 
+    it('allows clearing endedAt', async () => {
+      entry.endedAt = null
+      await entry.save()
+
+      should.equal(entry.endedAt, null)
+      should.equal(entry.endedAtTimezone, null)
+    })
+
     it('clears endedAt and endedAtTimezone when changing type from range to event', async () => {
+      // Reset from previous test
+      entry.endedAt = new Date()
+      entry.endedAtTimezone = 'America/Chicago'
+      await entry.save()
+
+      // Test clearing on change
       should.not.equal(entry.endedAt, null)
       should.not.equal(entry.endedAtTimezone, null)
 

@@ -33,7 +33,9 @@ async function insertRecord() {
     this.props.type === undefined
   ) throw TimeError.Request.INVALID_STATE
 
-  if (this.props.started_at === undefined) this.start()
+  if (this.props.started_at === undefined || this.props.started_at === null) {
+    this.start()
+  }
 
   let started_at_timezone_id = await getTimezoneID(this.props.started_at_timezone)
   let ended_at_timezone_id = await getTimezoneID(this.props.ended_at_timezone)
@@ -201,13 +203,15 @@ module.exports = class Entry {
   }
   set startedAt(newStart) {
     if (this.type === undefined) throw TimeError.Request.INVALID_STATE
-    if (this.props.ended_at && dateHelper.isAfter(newStart, this.props.ended_at)) {
+    if (
+      (newStart === null || newStart === undefined) ||
+      (this.props.ended_at && dateHelper.isAfter(newStart, this.props.ended_at))
+    ) {
       throw TimeError.Request.INVALID_VALUE
     }
 
     this.props.started_at = newStart
     this._modifiedProps.push("started_at")
-    if (newStart === null) this.startedAtTimezone = null
   }
 
   get startedAtTimezone() {
