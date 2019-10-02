@@ -361,13 +361,29 @@ describe('Entry Module', () => {
       fresh.type.should.eq(Time.Type.Entry.EVENT)
     })
 
-    it('can be deleted', async () => {
+    it('can be softly deleted', async () => {
       await e.delete()
     })
 
     it('cannot be loaded after it is deleted', () => {
       return Time.Entry.fetch(e.id)
       .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
+    })
+
+    it('will still exist in the db after a soft delete', async () => {
+      let recordsResult = await Time._db('entry').count('id').where('id', e.id)
+      let records = Object.values(recordsResult[0])[0]
+      records.should.eq(1)
+    })
+
+    it('can be hard deleted', async () => {
+      await e.delete(true)
+    })
+
+    it('will be removed from the db after a hard delete', async () => {
+      let recordsResult = await Time._db('entry').count('id').where('id', e.id)
+      let records = Object.values(recordsResult[0])[0]
+      records.should.eq(0)
     })
   })
 

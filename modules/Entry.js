@@ -133,6 +133,8 @@ async function fetchRecords(filters, limit = null) {
     delete filters.before
   }
 
+  let includeDeleted = filters.deleted === true
+
   let data;
   try {
     let query = db.select(
@@ -163,6 +165,8 @@ async function fetchRecords(filters, limit = null) {
       query = query.where('started_at', '>', greaterThanFilter)
     if (lessThanFilter !== null)
       query = query.where('started_at', '<', lessThanFilter)
+    if (!includeDeleted)
+      query = query.where('deleted', false)
 
     if (limit !== null)
       query = query.limit(+limit)
@@ -294,9 +298,18 @@ module.exports = class Entry {
       updateRecord.bind(this)()
   }
 
-  async delete() {
+  async delete(hard = false) {
     let db = require('../lib/db')()
-    await db('entry').where('id', this.id).del()
+    if (hard) {
+      await db('entry').where('id', this.id).del()
+    } else {
+      await db('entry')
+      .update({
+        deleted_at: db.raw('CURRENT_TIMESTAMP'),
+        deleted: true
+      })
+      .where('id', this.id)
+    }
   }
 
   static async fetch(id) {
