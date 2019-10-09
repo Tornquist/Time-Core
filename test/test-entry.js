@@ -362,7 +362,9 @@ describe('Entry Module', () => {
     })
 
     it('can be softly deleted', async () => {
+      e.deleted.should.eq(false)
       await e.delete()
+      e.deleted.should.eq(true)
     })
 
     it('cannot be loaded after it is deleted', () => {
@@ -605,6 +607,44 @@ describe('Entry Module', () => {
         let resultIDs = results.map(r => r.id)
         let expectedIDs = [eA.id]
         resultIDs.should.have.same.members(expectedIDs)
+      })
+    })
+
+    describe('When deleted', () => {
+      before(async () => {
+        let entry = await Time.Entry.fetch(eA.id)
+        await entry.delete()
+      })
+
+      it('returns current entries by default', async () => {
+        let results = await Time.Entry.findFor({
+          accounts: [aA, aB],
+          before: '2018-01-03 12:00:00'
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [/*eA.id,*/ eB.id, eC.id]
+        resultIDs.should.have.same.members(expectedIDs)
+      })
+
+      it('returns current entries and deleted entries upon request', async () => {
+        let results = await Time.Entry.findFor({
+          accounts: [aA, aB],
+          before: '2018-01-03 12:00:00',
+          deleted: true
+        })
+
+        let resultIDs = results.map(r => r.id)
+        let expectedIDs = [eA.id, eB.id, eC.id]
+        resultIDs.should.have.same.members(expectedIDs)
+
+        results.forEach(result => {
+          if (result.id === eA.id) {
+            result.deleted.should.eq(true)
+          } else {
+            result.deleted.should.eq(false)
+          }
+        })
       })
     })
 
