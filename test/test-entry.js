@@ -426,16 +426,20 @@ describe('Entry Module', () => {
 
       eE = new Time.Entry()
       eE.category = cA; eE.type = Time.Type.Entry.RANGE
-      eE.startedAt = '2018-01-05 01:01:01'; await eE.save()
+      eE.startedAt = '2018-01-05 01:01:01';
+      eE.endedAt = '2018-02-05 01:01:01'; await eE.save()
       eF = new Time.Entry()
       eF.category = cB; eF.type = Time.Type.Entry.RANGE
-      eF.startedAt = '2018-01-06 01:01:01'; await eF.save()
+      eF.startedAt = '2018-01-06 01:01:01';
+      eF.endedAt = '2018-02-06 01:01:01'; await eF.save()
       eG = new Time.Entry()
       eG.category = cC; eG.type = Time.Type.Entry.RANGE
-      eG.startedAt = '2018-01-07 01:01:01'; await eG.save()
+      eG.startedAt = '2018-01-07 01:01:01';
+      eG.endedAt = '2018-02-07 01:01:01'; await eG.save()
       eH = new Time.Entry()
       eH.category = cD; eH.type = Time.Type.Entry.RANGE
-      eH.startedAt = '2018-01-08 01:01:01'; await eH.save()
+      eH.startedAt = '2018-01-08 01:01:01';
+      eH.endedAt = '2018-02-08 01:01:01'; await eH.save()
     })
 
     it('returns an empty array when none exist', async () => {
@@ -543,38 +547,88 @@ describe('Entry Module', () => {
       // Date must be limited by account. Otherwise a ton of old test
       // data will be returned as well. It's too open-ended
 
-      it('allows greater than', async () => {
-        let results = await Time.Entry.findFor({
-          accounts: [aA, aB],
-          after: '2018-01-03 12:00:00'
+      describe('With no explicit reference', () => {
+        it('allows greater than', async () => {
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            after: '2018-01-03 12:00:00'
+          })
+
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eD.id, eE.id, eF.id, eG.id, eH.id]
+          resultIDs.should.have.same.members(expectedIDs)
         })
 
-        let resultIDs = results.map(r => r.id)
-        let expectedIDs = [eD.id, eE.id, eF.id, eG.id, eH.id]
-        resultIDs.should.have.same.members(expectedIDs)
+        it('allows less than', async () => {
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            before: '2018-01-03 12:00:00'
+          })
+
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eA.id, eB.id, eC.id]
+          resultIDs.should.have.same.members(expectedIDs)
+        })
+
+        it('allows greater than and less than', async () => {
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            after: '2018-01-02 12:00:00',
+            before: '2018-01-06 12:00:00'
+          })
+
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eC.id, eD.id, eE.id, eF.id]
+          resultIDs.should.have.same.members(expectedIDs)
+        })
       })
 
-      it('allows less than', async () => {
-        let results = await Time.Entry.findFor({
-          accounts: [aA, aB],
-          before: '2018-01-03 12:00:00'
+      describe('With a reference value', () => {
+        it('allows reference = start', async () => {
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            after: '2018-01-04 12:01:01',
+            reference: 'start'
+          })
+
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eE.id, eF.id, eG.id, eH.id]
+          resultIDs.should.have.same.members(expectedIDs)
         })
 
-        let resultIDs = results.map(r => r.id)
-        let expectedIDs = [eA.id, eB.id, eC.id]
-        resultIDs.should.have.same.members(expectedIDs)
-      })
+        it('allows reference = end', async () => {
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            before: '2018-02-06 12:01:01',
+            reference: 'end'
+          })
 
-      it('allows greater than and less than', async () => {
-        let results = await Time.Entry.findFor({
-          accounts: [aA, aB],
-          after: '2018-01-02 12:00:00',
-          before: '2018-01-06 12:00:00'
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eE.id, eF.id]
+          resultIDs.should.have.same.members(expectedIDs)
         })
 
-        let resultIDs = results.map(r => r.id)
-        let expectedIDs = [eC.id, eD.id, eE.id, eF.id]
-        resultIDs.should.have.same.members(expectedIDs)
+        it('allows reference = update', async () => {
+          let searchDate = moment().subtract(30, 'seconds').format('YYYY-MM-DD HH:mm:ss')
+
+          let results = await Time.Entry.findFor({
+            accounts: [aA, aB],
+            after: searchDate,
+            reference: 'update'
+          })
+
+          let resultIDs = results.map(r => r.id)
+          let expectedIDs = [eA.id, eB.id, eC.id, eD.id, eE.id, eF.id, eG.id, eH.id]
+          resultIDs.should.have.same.members(expectedIDs)
+        })
+
+        it('rejects other references', () => {
+          return Time.Entry.findFor({
+            accounts: [aA, aB],
+            before: '2018-02-06 12:01:01',
+            reference: 'bad'
+          }).should.be.rejectedWith(Time.Error.Request.INVALID_ACTION)
+        })
       })
     })
 

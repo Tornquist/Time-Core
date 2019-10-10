@@ -133,6 +133,25 @@ async function fetchRecords(filters, limit = null) {
     delete filters.before
   }
 
+  let reference = 'entry.started_at'
+  if (filters.reference !== undefined) {
+    switch (filters.reference) {
+      case 'start':
+        reference = 'entry.started_at'
+        break
+      case 'end':
+        reference = 'entry.ended_at'
+        break
+      case 'update':
+        reference = 'entry.updated_at'
+        break
+      default:
+        throw TimeError.Request.INVALID_ACTION
+        break
+    }
+    delete filters.reference
+  }
+
   let includeDeleted = filters.deleted === true
   delete filters.deleted
 
@@ -164,9 +183,9 @@ async function fetchRecords(filters, limit = null) {
     if (categoryFilter !== null)
       query = query.whereIn('entry.category_id', categoryFilter)
     if (greaterThanFilter !== null)
-      query = query.where('started_at', '>', greaterThanFilter)
+      query = query.where(reference, '>', greaterThanFilter)
     if (lessThanFilter !== null)
-      query = query.where('started_at', '<', lessThanFilter)
+      query = query.where(reference, '<', lessThanFilter)
     if (!includeDeleted)
       query = query.where('deleted', false)
 
