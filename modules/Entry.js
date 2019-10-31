@@ -133,6 +133,28 @@ async function fetchRecords(filters, limit = null) {
     delete filters.before
   }
 
+  let reference = 'entry.started_at'
+  if (filters.reference !== undefined) {
+    switch (filters.reference) {
+      case 'start':
+        reference = 'entry.started_at'
+        break
+      case 'end':
+        reference = 'entry.ended_at'
+        break
+      case 'update':
+        reference = 'entry.updated_at'
+        break
+      default:
+        throw TimeError.Request.INVALID_ACTION
+        break
+    }
+    delete filters.reference
+  }
+
+  let includeDeleted = filters.deleted === true
+  delete filters.deleted
+
   let data;
   try {
     let query = db.select(
@@ -143,6 +165,7 @@ async function fetchRecords(filters, limit = null) {
       'tz_start.name as started_at_timezone',
       'ended_at',
       'tz_end.name as ended_at_timezone',
+      'deleted'
     ).from('entry')
     .leftJoin('entry_type', 'entry_type.id', 'entry.type_id')
     .leftJoin('timezone as tz_start', 'tz_start.id', 'entry.started_at_timezone_id')
@@ -160,14 +183,21 @@ async function fetchRecords(filters, limit = null) {
     if (categoryFilter !== null)
       query = query.whereIn('entry.category_id', categoryFilter)
     if (greaterThanFilter !== null)
-      query = query.where('started_at', '>', greaterThanFilter)
+      query = query.where(reference, '>', greaterThanFilter)
     if (lessThanFilter !== null)
-      query = query.where('started_at', '<', lessThanFilter)
+      query = query.where(reference, '<', lessThanFilter)
+    if (!includeDeleted)
+      query = query.where('deleted', false)
 
     if (limit !== null)
       query = query.limit(+limit)
 
     data = await query
+    
+    data = data.map(d => {
+      d.deleted = d.deleted === 1
+      return d
+    })
   } catch (error) {
     return Promise.reject(TimeError.Data.BAD_CONNECTION)
   }
@@ -257,6 +287,10 @@ module.exports = class Entry {
     this._modifiedProps.push("ended_at_timezone")
   }
 
+  get deleted() {
+    return this.props.deleted
+  }
+
   constructor(data = {}) {
     this._modifiedProps = []
 
@@ -269,7 +303,9 @@ module.exports = class Entry {
       started_at: data.started_at,
       started_at_timezone: data.started_at_timezone || null,
       ended_at: data.ended_at,
-      ended_at_timezone: data.ended_at_timezone || null
+      ended_at_timezone: data.ended_at_timezone || null,
+
+      deleted: data.deleted || false
     }
   }
 
@@ -294,9 +330,19 @@ module.exports = class Entry {
       updateRecord.bind(this)()
   }
 
-  async delete() {
+  async delete(hard = false) {
     let db = require('../lib/db')()
-    await db('entry').where('id', this.id).del()
+    if (hard) {
+      await db('entry').where('id', this.id).del()
+    } else {
+      await db('entry')
+      .update({
+        deleted_at: db.raw('CURRENT_TIMESTAMP'),
+        deleted: true
+      })
+      .where('id', this.id)
+      this.props.deleted = true
+    }
   }
 
   static async fetch(id) {

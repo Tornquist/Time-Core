@@ -25,21 +25,21 @@
   },
   "homepage": "https://github.com/Tornquist/Time-Core#readme",
   "devDependencies": {
-    "chai": "^4.1.2",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "coveralls": "^3.0.2",
+    "coveralls": "^3.0.6",
     "db-migrate": "^0.11.1",
     "db-migrate-mysql": "^1.1.10",
-    "mocha": "^5.2.0",
-    "nyc": "^13.0.1",
+    "mocha": "^6.2.0",
+    "nyc": "^14.1.1",
     "release-it": "^12.3.4",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.3"
   },
   "dependencies": {
     "bcrypt": "3.0.0",
-    "dotenv": "^6.0.0",
-    "knex": "^0.15.2",
-    "moment": "^2.22.2",
-    "mysql": "^2.16.0"
+    "dotenv": "^8.1.0",
+    "knex": "^0.19.5",
+    "moment": "^2.24.0",
+    "mysql": "^2.17.1"
   }
 }
