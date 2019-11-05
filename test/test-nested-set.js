@@ -556,6 +556,95 @@ describe('Nested Set Methods (Category SQL Procedures)', () => {
             '3': { lft: 15, rgt: 16, parent_id: ids.rID }
       })
     })
+
+    describe('Between accounts', () => {
+      let accountOneID, accountOneRoot;
+      let oneIDs = {}
+      let accountTwoID, accountTwoRoot;
+      let twoIDs = {}
+
+      before(async () => {
+        accountOneID = (await Time._db('account').insert({}))[0]
+        accountTwoID = (await Time._db('account').insert({}))[0]
+
+        accountOneRoot = await category_setup(accountOneID)
+        accountTwoRoot = await category_setup(accountTwoID)
+
+        // A
+        //  B
+        //  C <- Delete and children
+        //   D
+        //   E
+        //   F
+
+        oneIDs.A = await category_add(accountOneID, accountOneRoot, 'A')
+        oneIDs.B = await category_add(accountOneID, oneIDs.A, 'B')
+        oneIDs.C = await category_add(accountOneID, oneIDs.A, 'C')
+        oneIDs.D = await category_add(accountOneID, oneIDs.C, 'D')
+        oneIDs.E = await category_add(accountOneID, oneIDs.C, 'E')
+        oneIDs.F = await category_add(accountOneID, oneIDs.C, 'F')
+
+        twoIDs.A = await category_add(accountTwoID, accountTwoRoot, 'A')
+        twoIDs.B = await category_add(accountTwoID, twoIDs.A, 'B')
+        twoIDs.C = await category_add(accountTwoID, twoIDs.A, 'C')
+        twoIDs.D = await category_add(accountTwoID, twoIDs.C, 'D')
+        twoIDs.E = await category_add(accountTwoID, twoIDs.C, 'E')
+        twoIDs.F = await category_add(accountTwoID, twoIDs.C, 'F')
+      })
+
+      it('starts with the expected trees', async () => {
+        let oneTree = await category_state(accountOneID)
+        verifyTree(oneTree, {
+          'root': { lft: 1, rgt: 14, parent_id: null },
+            'A': { lft: 2, rgt: 13, parent_id: accountOneRoot },
+              'B': { lft: 3, rgt: 4, parent_id: oneIDs.A },
+              'C': { lft: 5, rgt: 12, parent_id: oneIDs.A },
+                'D': { lft: 6, rgt: 7, parent_id: oneIDs.C },
+                'E': { lft: 8, rgt: 9, parent_id: oneIDs.C },
+                'F': { lft: 10, rgt: 11, parent_id: oneIDs.C }
+        })
+
+        let twoTree = await category_state(accountTwoID)
+        verifyTree(twoTree, {
+          'root': { lft: 1, rgt: 14, parent_id: null },
+            'A': { lft: 2, rgt: 13, parent_id: accountTwoRoot },
+              'B': { lft: 3, rgt: 4, parent_id: twoIDs.A },
+              'C': { lft: 5, rgt: 12, parent_id: twoIDs.A },
+                'D': { lft: 6, rgt: 7, parent_id: twoIDs.C },
+                'E': { lft: 8, rgt: 9, parent_id: twoIDs.C },
+                'F': { lft: 10, rgt: 11, parent_id: twoIDs.C }
+        })
+      })
+
+      it('allows deletion with children', async () => {
+        await category_delete(twoIDs.C, true)
+      })
+
+      it('ends with the expected trees', async () => {
+        let oneTree = await category_state(accountOneID)
+        verifyTree(oneTree, {
+          'root': { lft: 1, rgt: 14, parent_id: null },
+            'A': { lft: 2, rgt: 13, parent_id: accountOneRoot },
+              'B': { lft: 3, rgt: 4, parent_id: oneIDs.A },
+              'C': { lft: 5, rgt: 12, parent_id: oneIDs.A },
+                'D': { lft: 6, rgt: 7, parent_id: oneIDs.C },
+                'E': { lft: 8, rgt: 9, parent_id: oneIDs.C },
+                'F': { lft: 10, rgt: 11, parent_id: oneIDs.C }
+        })
+
+        let twoTree = await category_state(accountTwoID)
+        verifyTree(twoTree, {
+          'root': { lft: 1, rgt: 6, parent_id: null },
+            'A': { lft: 2, rgt: 5, parent_id: accountTwoRoot },
+              'B': { lft: 3, rgt: 4, parent_id: twoIDs.A }
+        })
+      })
+
+      after(async () => {
+        await Time._db('account').where('id', accountOneID).del()
+        await Time._db('account').where('id', accountTwoID).del()
+      })
+    })
   })
 
   after(async () => {

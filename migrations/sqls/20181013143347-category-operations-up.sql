@@ -119,7 +119,7 @@ BEGIN
   END IF;
 
   IF n_width = 2 OR in_delete_children THEN
-    DELETE FROM category WHERE lft BETWEEN n_lft AND n_rgt;
+    DELETE FROM category WHERE lft BETWEEN n_lft AND n_rgt AND account_id = n_account_id;
 
     UPDATE category SET rgt = rgt - n_width WHERE rgt > n_rgt AND account_id = n_account_id;
     UPDATE category SET lft = lft - n_width WHERE lft > n_rgt AND account_id = n_account_id;
