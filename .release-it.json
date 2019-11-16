@@ -1,5 +1,5 @@
 {
-  "src": {
+  "git": {
     "tagName": "v%s",
     "commitMessage": "Release v%s",
     "tagAnnotation": "Release v%s"
