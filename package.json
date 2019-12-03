@@ -36,6 +36,7 @@
     "uuid": "^3.3.3"
   },
   "dependencies": {
+    "@hapi/joi": "16.1.8",
     "bcrypt": "3.0.3",
     "dotenv": "^8.1.0",
     "knex": "^0.19.5",
