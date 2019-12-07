@@ -273,14 +273,14 @@ module.exports = class Import {
       events: joi.array().items(joi.object({
         started_at: joi.string().isoDate().required(),
         started_at_timezone: joi.string().required()
-      })),
+      })).required().min(0),
       ranges: joi.array().items(joi.object({
         started_at: joi.string().isoDate().required(),
         started_at_timezone: joi.string().required(),
         ended_at: joi.string().isoDate().required(),
         ended_at_timezone: joi.string().required()
-      })),
-      children: joi.array().items(joi.link('#tree'))
+      })).required().min(0),
+      children: joi.array().items(joi.link('#tree')).required().min(0)
     }).id("tree")
   }
 }
