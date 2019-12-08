@@ -104,16 +104,22 @@ const performImport = async (importObj, data) => {
     let Category = require('./Category')
     let Entry = require('./Entry')
     let Type = require('./Type')
+    let db = require('../lib/db')()
 
     let account = new Account()
     account.register(importObj.userID) // TODO: Allow delayed registration on success only
     await account.save()
-
-    console.log("Created account", account.id)
     
+    let createdCategories = 0
+    let updateCreatedCategories = async () => {
+      importObj.props.imported_categories = createdCategories
+      await db('import')
+        .update('imported_categories', createdCategories)
+        .where('id', importObj.id)
+    }
+
     let sequentiallyCreateCategories = async (parent, tree) => {
       if (tree.name.length === 0) {
-        console.log("Empty root, attaching children to root")
         for (let i = 0; i < tree.children.length; i++) {
           let child = tree.children[i]
           await sequentiallyCreateCategories(undefined, child)
@@ -127,8 +133,12 @@ const performImport = async (importObj, data) => {
         parentID: parent
       })
       await category.save()
-      console.log("Created category", tree.name, "with id", category.id)
+      createdCategories = createdCategories + 1
       tree.category_id = category.id
+
+      if (createdCategories % 10 === 0) {
+        await updateCreatedCategories()
+      }
 
       for (let i = 0; i < tree.children.length; i++) {
         let child = tree.children[i]
@@ -136,6 +146,7 @@ const performImport = async (importObj, data) => {
       }
     }
     await sequentiallyCreateCategories(undefined, data)
+    await updateCreatedCategories()
 
     let allEvents = []
     let unwrapEvents = (tree) => {
@@ -147,10 +158,16 @@ const performImport = async (importObj, data) => {
       tree.children.forEach(unwrapEvents)
     }
     unwrapEvents(data)
+    let updateCreatedEntries = async (i) => {
+      importObj.props.imported_entries = i
+      await db('import')
+        .update('imported_entries', i)
+        .where('id', importObj.id)
+    }
     
     for (let i = 0; i < allEvents.length; i++) {
       if (i % 10 === 0) {
-        console.log(`${i}/${allEvents.length}`)
+        await updateCreatedEntries(i)
       }
 
       let data = allEvents[i]
@@ -167,10 +184,20 @@ const performImport = async (importObj, data) => {
       }
       await entry.save()
     }
+    await updateCreatedEntries(allEvents.length)
 
+    await db('import').update('success', true).where('id', importObj.id)
+    importObj.props.success = true
   } catch (err) {
-    // Mark request as failed
     console.log("Failure in importing data", err)
+  }
+
+  try {
+    let db = require('../lib/db')()
+    await db('import').update('complete', true).where('id', importObj.id)
+    importObj.props.complete = true
+  } catch (err) {
+    // No action to take --> prevents node exiting from uncaught promise
   }
 }
 

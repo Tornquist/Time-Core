@@ -222,7 +222,78 @@ describe('Import Module', () => {
       importReference.expectedEntries.should.eq(2)
       importReference.importedEntries.should.eq(0)
       importReference.complete.should.eq(false)
-      importReference.success.should.eq(false)      
+      importReference.success.should.eq(false)
+    })
+
+    describe('Loading large files', () => {
+      let importer;
+
+      it('Allows an import to be initiated', async () => {
+        importer = await Time.Import.loadInto(user, testData)
+
+        importer.constructor.name.should.eq('Import')
+        importer.userID.should.eq(user.id)
+        importer.createdAt.should.be.a('date')
+        importer.updatedAt.should.be.a('date')
+        importer.expectedCategories.should.eq(9)
+        importer.importedCategories.should.eq(0)
+        importer.expectedEntries.should.eq(138)
+        importer.importedEntries.should.eq(0)
+        importer.complete.should.eq(false)
+        importer.success.should.eq(false)
+      })
+
+      it('Updates progress as it executes',  async () => {
+        let lastImportedEntries = importer.importedEntries
+        let lastImportedCategories = importer.importedCategories
+
+        let waitForCategoryComplete = true
+        while (waitForCategoryComplete) {
+          await sleep(10)
+          if (importer.importedCategories === importer.expectedCategories) {
+            waitForCategoryComplete = false
+          }
+        }
+
+        for (let i = 0; i < 3; i++) {
+          await sleep(25)
+
+          importer.importedEntries.should.be.greaterThan(lastImportedEntries)
+          importer.importedCategories.should.be.greaterThan(lastImportedCategories)
+        }
+      })
+
+      it('Marks complete when finished', async () => {
+        while (importer.complete !== true) {
+          await sleep(10)
+        }
+
+        importer.constructor.name.should.eq('Import')
+        importer.userID.should.eq(user.id)
+        importer.createdAt.should.be.a('date')
+        importer.updatedAt.should.be.a('date')
+        importer.expectedCategories.should.eq(9)
+        importer.importedCategories.should.eq(9)
+        importer.expectedEntries.should.eq(138)
+        importer.importedEntries.should.eq(138)
+        importer.complete.should.eq(true)
+        importer.success.should.eq(true)
+      })
+
+      it('Can be fetched and validated', async () => {
+        let fetchedImporter = await Time.Import.fetch(importer.id)
+
+        fetchedImporter.constructor.name.should.eq('Import')
+        fetchedImporter.userID.should.eq(user.id)
+        fetchedImporter.createdAt.should.be.a('date')
+        fetchedImporter.updatedAt.should.be.a('date')
+        fetchedImporter.expectedCategories.should.eq(9)
+        fetchedImporter.importedCategories.should.eq(9)
+        fetchedImporter.expectedEntries.should.eq(138)
+        fetchedImporter.importedEntries.should.eq(138)
+        fetchedImporter.complete.should.eq(true)
+        fetchedImporter.success.should.eq(true)
+      })
     })
   })
 })
