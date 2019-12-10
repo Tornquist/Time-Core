@@ -340,6 +340,14 @@ describe('Import Module', () => {
       return Time.Import.fetch(10000)
         .should.be.rejectedWith(Time.Error.Data.NOT_FOUND)
     })
+
+    it('allows all records to be loaded for a given user', async () => {
+      let user1Records = await Time.Import.findForUser(user1)
+      let user2Records = await Time.Import.findForUser(user2)
+
+      user1Records.length.should.be.greaterThan(1)
+      user2Records.length.should.be.eq(1)
+    })
   })
 
   describe('Importing data with set and null roots', () => {

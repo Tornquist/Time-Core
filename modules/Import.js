@@ -267,6 +267,13 @@ module.exports = class Import {
     return new Import(objectData[0])
   }
 
+  static async findForUser(user) {
+    let id = typeof user === "number" ? user : user.id
+    let objectData = await fetchRecords({ user_id: id })
+
+    return objectData.map(importRequest => new Import(importRequest))
+  }
+
   static async loadInto(user, data = {}) {
     let validFormat = Import.getRequestSchema().validate(data).error === undefined
     if (!validFormat) { throw TimeError.Data.INCORRECT_FORMAT }
