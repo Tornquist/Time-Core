@@ -107,7 +107,7 @@ const performImport = async (importObj, data) => {
     let db = require('../lib/db')()
 
     let account = new Account()
-    account.register(importObj.userID) // TODO: Allow delayed registration on success only
+    account.enforceMinimumUsers = false
     await account.save()
     
     let createdCategories = 0
@@ -186,6 +186,11 @@ const performImport = async (importObj, data) => {
     }
     await updateCreatedEntries(allEvents.length)
 
+    // Link to user
+    account.register(importObj.userID)
+    await account.save()
+
+    // All actions complete
     await db('import').update('success', true).where('id', importObj.id)
     importObj.props.success = true
   } catch (err) {

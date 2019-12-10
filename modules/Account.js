@@ -125,9 +125,17 @@ module.exports = class Account {
 
   get userIDs() { return this.props.userIDs }
 
+  get enforceMinimumUsers() {
+    return !this._disableUserCheck
+  }
+  set enforceMinimumUsers(newValue) {
+    this._disableUserCheck = !newValue
+  }
+
   constructor(data = {})  {
     this._addedUsers = []
     this._removedUsers = []
+    this._disableUserCheck = false
 
     this.id = data.id || null
     this.props = {
@@ -151,7 +159,9 @@ module.exports = class Account {
     let changesToSave = neverSaved || usersToAdd || usersToRemove
     if (!changesToSave) return this
 
-    if (this.props.userIDs.length === 0) {
+    let atMinimumUsers = this.props.userIDs.length === 0
+    let enforceUserCount = this.enforceMinimumUsers
+    if (atMinimumUsers && enforceUserCount) {
       return Promise.reject(TimeError.Request.INVALID_STATE)
     }
 

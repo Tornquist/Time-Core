@@ -250,6 +250,11 @@ describe('Import Module', () => {
       importer.success.should.eq(false)
     })
 
+    it('does not register an account on the target user', async () => {
+      let accounts = await Time.Account.findForUser(user2)
+      accounts.length.should.eq(0)
+    })
+
     it('updates progress as it executes',  async () => {
       let lastImportedEntries = importer.importedEntries
       let lastImportedCategories = importer.importedCategories
@@ -285,6 +290,11 @@ describe('Import Module', () => {
       importer.importedEntries.should.eq(138)
       importer.complete.should.eq(true)
       importer.success.should.eq(true)
+    })
+
+    it('links the account to the user on complete', async () => {
+      let accounts = await Time.Account.findForUser(user2)
+      accounts.length.should.eq(1)
     })
 
     it('imports the expected data', async () => {
