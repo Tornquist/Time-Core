@@ -27,26 +27,71 @@ describe('Account Module', () => {
   let account = null;
 
   describe('Creating a new account', () => {
-    it('can be initialized with no data', () => {
-      account = new Time.Account()
+    describe('with default settings', () => {
+      it('can be initialized with no data', () => {
+        account = new Time.Account()
+      })
+
+      it('rejects saving without at least 1 user', () => {
+        return account.save()
+        .should.be.rejectedWith(Time.Error.Request.INVALID_STATE)
+      })
+
+      it('allows registering of a user', () => {
+        account.register(user1)
+
+        account.userIDs.length.should.eq(1)
+        account.userIDs.includes(user1.id).should.eq(true)
+      })
+
+      it('allows saving after a user has been registered', async () => {
+        await account.save()
+
+        account.id.should.be.a('number')
+      })
     })
 
-    it('rejects saving without at least 1 user', () => {
-      return account.save()
-      .should.be.rejectedWith(Time.Error.Request.INVALID_STATE)
-    })
+    describe('with minimums disabled', () => {
+      let altAccount = null;
+      it('can be initialized with no data', () => {
+        altAccount = new Time.Account()
+      })
 
-    it('allows registering of a user', () => {
-      account.register(user1)
+      it('defaults to minimum enforced', () => {
+        altAccount.enforceMinimumUsers.should.eq(true)
+      })
 
-      account.userIDs.length.should.eq(1)
-      account.userIDs.includes(user1.id).should.eq(true)
-    })
+      it('allows disabling check', () => {
+        altAccount.enforceMinimumUsers = false
+        altAccount.enforceMinimumUsers.should.eq(false)
+      })
 
-    it('allows saving after a user has been registered', async () => {
-      await account.save()
+      it('allows saving with no users set', async () => {
+        await altAccount.save()
+        altAccount.id.should.be.a('number')
+        altAccount.userIDs.length.should.eq(0)
+      })
 
-      account.id.should.be.a('number')
+      it('enables minimums after a fresh object load', async () => {
+        let freshAccount = await Time.Account.fetch(altAccount.id)
+        freshAccount.enforceMinimumUsers.should.eq(true)
+
+        altAccount = freshAccount
+      })
+
+      it('allows a user to be registered', async () => {
+        altAccount.register(user1)
+        await altAccount.save()
+      })
+
+      it('generates a full link to the user', async () => {
+        let accounts = await Time.Account.findForUser(user1.id)
+        accounts.map(a => a.id).should.contain(altAccount.id)
+      })
+
+      after(async () => {
+        await Time._db('account').where('id', altAccount.id).del()
+      })
     })
   })
 
