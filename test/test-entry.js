@@ -2,7 +2,7 @@ let chai = require('chai');
 let chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 let should = chai.should();
-let moment = require('moment')
+let moment = require('moment-timezone')
 let uuid = require('uuid/v4')
 
 const config = require('./setup/config')
@@ -87,6 +87,75 @@ describe('Entry Module', () => {
       e.categoryID.should.eq(category.id)
       e.startedAt.should.be.a('date')
       e.startedAtTimezone.should.eq('America/Chicago')
+    })
+
+    describe('Over daylight savings time', () => {
+      // Chicago is -6 UTC from Nov 1 -> Mar 8
+      //         is -5 UTC from Mar 8 -> Nov 1
+      // Details:
+      //         at 2:00am on March 10th, 2019 clocks advance 1 hour
+      //         at 2:00am on Novovember 3rd, 2019 clocks fall back 1 hour (2 -> 1)
+      //         the timestamp 11/01/19 01:30 America/Chicago is ambiguous
+
+      let createEntry = async (start, end) => {
+        // Simulate UTC network layer formatting
+        let startTime = start.toISOString()
+        let startTimezone = start.tz()
+        let endTime = end.toISOString()
+        let endTimezone = end.tz()
+
+        // Create from network actions
+        let e = new Time.Entry()
+        e.category = category
+        e.type = Time.Type.Entry.RANGE
+
+        e.startedAtTimezone = startTimezone
+        e.startedAt = startTime
+
+        e.endedAtTimezone = endTimezone
+        e.endedAt = endTime
+
+        await e.save()
+        e.id.should.be.a('number')
+
+        return e.id
+      }
+
+      let verifyObject = async (id, unit, delta) => {
+        let freshEntry = await Time.Entry.fetch(id)
+        freshEntry.startedAt.should.be.a('date')
+        freshEntry.startedAtTimezone.should.eq('America/Chicago')
+        freshEntry.endedAt.should.be.a('date')
+        freshEntry.endedAtTimezone.should.eq('America/Chicago')
+
+        let momentStart = moment.utc(freshEntry.startedAt)
+        let momentEnd = moment.utc(freshEntry.endedAt)
+        momentEnd.diff(momentStart, unit).should.eq(delta)
+      }
+
+      it('can be created when falling back', async () => {
+        let fallBackStart = moment.tz('2019-11-03 00:30', 'America/Chicago')
+        let fallBackEnd = moment.tz('2019-11-03 02:30', 'America/Chicago')
+        fallBackStart.isDST().should.eq(true)
+        fallBackEnd.isDST().should.eq(false)
+
+        let fallBackEntryId = await createEntry(fallBackStart, fallBackEnd)
+
+        // 3 hours due to roll back and repeat of hour
+        await verifyObject(fallBackEntryId, 'h', 3)
+      })
+
+      it('can be created when springing forward', async () => {
+        let springForwardStart = moment.tz('2019-03-10 01:59', 'America/Chicago')
+        let springForwardEnd = moment.tz('2019-03-10 03:01', 'America/Chicago')
+        springForwardStart.isDST().should.eq(false)
+        springForwardEnd.isDST().should.eq(true)
+
+        let springForwardEntryId = await createEntry(springForwardStart, springForwardEnd)
+
+        // 2 minutes (instead of 1:02) due to spring forward and skipping of hour
+        await verifyObject(springForwardEntryId, 'm', 2)
+      })
     })
   })
 
